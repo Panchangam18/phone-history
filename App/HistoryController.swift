@@ -396,6 +396,7 @@ final class HistoryController: UIViewController {
         let destination = documents.appendingPathComponent("history-export",isDirectory:true)
         try FileManager.default.createDirectory(at:destination,withIntermediateDirectories:true,
             attributes:[.protectionKey:FileProtectionType.completeUntilFirstUserAuthentication,.posixPermissions:0o700])
+        try HistoryPaths.excludeFromBackup(destination)
         if let data = try? Data(contentsOf:folder.appendingPathComponent("status.json")) {
             try data.write(to:destination.appendingPathComponent("status.json"),options:[.atomic,.completeFileProtectionUntilFirstUserAuthentication])
         }

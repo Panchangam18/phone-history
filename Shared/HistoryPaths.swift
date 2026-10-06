@@ -17,6 +17,14 @@ enum HistoryPaths {
         let folder = base.appendingPathComponent("History", isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true,
             attributes: [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication, .posixPermissions: 0o700])
+        try excludeFromBackup(folder)
         return folder
+    }
+    static func excludeFromBackup(_ folder: URL) throws {
+        guard try folder.resourceValues(forKeys:[.isExcludedFromBackupKey]).isExcludedFromBackup != true else { return }
+        var target=folder
+        var values=URLResourceValues()
+        values.isExcludedFromBackup=true
+        try target.setResourceValues(values)
     }
 }

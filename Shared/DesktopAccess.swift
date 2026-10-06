@@ -173,7 +173,7 @@ final class DesktopExportProtocol {
         }
         if let data=try? Data(contentsOf:folder.appendingPathComponent("memory-status.json")),let raw=(try? JSONSerialization.jsonObject(with:data)) as? [String:Any] {
             var safe:[String:Any]=[:]
-            for key in ["state","updated_at","model_available","availability","scope","source_count","last_generated_at","evidence_preserved","next_window_end","summary_style"] {if let v=raw[key] {safe[key]=v}}
+            for key in ["state","updated_at","model_available","availability","scope","source_count","last_generated_at","evidence_preserved","next_window_end","summary_style","generation_failure"] {if let v=raw[key] {safe[key]=v}}
             response["memory_generation"]=safe
         }
         if ["history","memories","evidence"].contains(operation) {

@@ -44,12 +44,20 @@ enum HistoryReader {
             var states: [Int:State] = [:]
             var version = 0
             var epoch: Double = 0
+            let cursorURL=file.deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("memory-cursor.json")
+            let cursor=(try? JSONSerialization.jsonObject(with:Data(contentsOf:cursorURL))) as? [String:Double] ?? [:]
             let data = try Data(contentsOf: file)
             for line in data.split(separator: 10) {
                 guard let row = (try? JSONSerialization.jsonObject(with: Data(line))) as? [String:Any] else { skipped += 1; continue }
                 if row["kind"] as? String == "memory" {
                     guard let memory=MemoryRecord.decode(row) else {skipped+=1;continue}
-                    if kind == "memories" && (memory.format ?? 0) < 8 {continue}
+                    if kind == "memories" {
+                        if (memory.format ?? 0) < 8 {continue}
+                        // A later model abstention supersedes an older generated
+                        // memory in this view. Original records remain by ID.
+                        let abstained=cursor["abstained_"+memory.scope+"_"+String(Int(memory.start))] ?? 0
+                        if (cursor["format_revision"] ?? 0)>Double(memory.format ?? 0),abstained>=memory.end {continue}
+                    }
                     if kind != "evidence",since == nil || memory.end>=since!.timeIntervalSince1970 {
                         entries.append(HistoryEntry(date:Date(timeIntervalSince1970:memory.end),label:memory.apps.joined(separator:", "),text:[memory.summary]+memory.facts,id:memory.id,source:"AI summary",memory:memory))
                     }

@@ -1,6 +1,6 @@
 # App Store preparation
 
-Status checked 2026-10-05: build 64 uploaded, processed and attached to version 1.0 in App Store Connect; Missing Compliance. Version 1.0 remains Prepare for Submission. Not submitted or approved.
+Status checked 2026-10-05: build 69 archived and installed successfully; its background worker generated model-authored prose on the phone. Upload succeeded after replacing the summary generator with directly model-authored prose. Builds 65, 66 and 68 are processed and show Missing Compliance. Build 69 processing is not yet confirmed. Build 64 remains attached to version 1.0 in App Store Connect, with Missing Compliance. Version 1.0 remains Prepare for Submission. Not submitted or approved.
 
 ## Prepared
 
@@ -11,7 +11,11 @@ Status checked 2026-10-05: build 64 uploaded, processed and attached to version 
 - Data Not Collected privacy answers published with the account holder's explicit approval. Age rating overridden to 18+ for this private activity recorder.
 - Native UI screenshot with synthetic data uploaded; no personal history included.
 - Free pricing saved. Apple Silicon Mac and Vision Pro availability disabled because this capture implementation targets iPhone. Worldwide availability saved for all 175 storefronts on release; regional compliance remains pending.
-- All 42 desktop-export and setup tests passed. Specific-subject memory selection uses exact phrases from numbered evidence, with deterministic activity wording and one model pass per window. This does not eliminate OCR errors or prove actions.
+- All 43 desktop-export and setup tests passed. Backup exclusion is idempotent and preserves existing data. The summary generator now uses one model pass to write final titles/prose, controlled through the prompt. No coded outcome classifications, verb choices or sentence templates remain. Validation checks only size limits and quote occurrence in the referenced excerpts. Tests verify unchanged model prose and rejection of invalid supporting references; these tests do not establish semantic accuracy.
+- Build 69 replaces the previous candidate's rejected semantic heuristics (memory format 16). A local Apple model replay produced concrete activity and outcome prose from a recorded sequence without sentence rewriting. This is a prompt test, not a separate iPhone runtime proof. The phone produced format 16 prose automatically while capture remained running. Semantic errors and weak model-selected supporting excerpts still occur, so summary accuracy remains an unresolved quality check. Noisy OCR can prevent reliably identifying a named pattern. A model-selected no-activity decision can supersede an older memory without deleting its evidence. Personal test history is not included in this repository. Production-signed capture remains unverified.
+- Build 65's authenticated on-device capture status reports running. A short extension-process window measured approximately 0.98% CPU and 6.5 MiB current physical footprint, with a 37.7 MiB peak. This is a short sample, not a daily battery estimate or production-signed verification.
+- [Private-journal content-rights assessment](CONTENT-RIGHTS.md) explicitly accounts for on-device processing, discarded pixels, bounded text and user-approved exports. It does not establish a worldwide legal exemption or resolve the account holder's rights declaration.
+- A private unsigned encryption technical annex is prepared, rendered and checked. The official ANSSI Annex I form was retrieved; it is a dynamic XFA PDF requiring a compatible viewer. Applicant details, filing classification, signature, submission and official receipt remain outstanding. No government email has been sent.
 
 ## Eligibility questions that packaging cannot resolve
 
@@ -25,7 +29,7 @@ The reviewer needs working first-time setup on their own device. An imported tru
 
 ## Remaining submission fields and checks
 
-- Resolve build 64's Missing Compliance status. Test the production-signed build through internal TestFlight; development installation alone does not establish production capture behavior.
+- Attach the latest processed build and resolve Missing Compliance. Test the production-signed build through internal TestFlight; development installation alone does not establish production capture behavior.
 - Current iOS compatibility, recipient setup, reboot/reconnect behavior and longer energy checks.
 - Account holder's content-rights declaration; any accessibility claims must reflect actual verification.
 - EU trader status and regional requirements where applicable; do not invent a legal status or trade address. Selecting worldwide storefronts does not satisfy these requirements.

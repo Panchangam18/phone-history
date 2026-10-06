@@ -27,20 +27,28 @@ configure(handler)
 while let line = readLine() {
     do {
         let command = try JSONSerialization.jsonObject(with:Data(line.utf8)) as! [String:Any]
-        if let rows=command["topics"] as? [[String:Any]],let content=command["content"] as? [String] {
-            let entry=HistoryEntry(date:Date(),label:command["label"] as? String ?? "Fixture",text:content)
-            let excerpts=NaturalMemory.excerpts([entry])
-            let draft=NaturalMemory.compose(rows.map{MemoryTopic(subject:$0["subject"] as? String ?? "",excerpts:$0["excerpts"] as? [Int] ?? [],detail:$0["detail"] as? String ?? "")},excerpts:excerpts)
-            let fallback=NaturalMemory.excerptFallback(excerpts)
-            let output:[String:Any]=["accepted":draft != nil,"summary":draft?.summary ?? "","quotes":draft?.quotes ?? [],"fallback_summary":fallback?.summary ?? "","excerpts":excerpts.map{$0.text}]
+        if command["backup_policy"] as? Bool == true {
+            let directory=folder.appendingPathComponent("backup-fixture",isDirectory:true)
+            try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
+            let existing=directory.appendingPathComponent("history.txt")
+            try Data("retained fixture".utf8).write(to:existing)
+            try HistoryPaths.excludeFromBackup(directory)
+            try HistoryPaths.excludeFromBackup(directory)
+            let output:[String:Any]=["excluded":try directory.resourceValues(forKeys:[.isExcludedFromBackupKey]).isExcludedFromBackup==true,
+                "retained":try String(contentsOf:existing,encoding:.utf8)]
             print(String(decoding:try JSONSerialization.data(withJSONObject:output),as:UTF8.self))
         }
-        else if let draft=command["draft"] as? [String:Any],let content=command["content"] as? [String] {
-            let entry=HistoryEntry(date:Date(),label:"",text:content)
-            let value=MemoryDraft(title:draft["title"] as? String ?? "",summary:draft["summary"] as? String ?? "",quotes:draft["quotes"] as? [String] ?? [])
-            let accepted=NaturalMemory.checked(value,entries:[entry]) != nil
-            let fallback=NaturalMemory.fallback(value.quotes,entries:[entry])
-            let output:[String:Any]=["accepted":accepted,"meaningful_count":ContextText.content(content).count,"fallback_title":fallback?.title ?? "","fallback_summary":fallback?.summary ?? "","prompt":NaturalMemory.prompt([entry])]
+        else if let references=command["references"] as? [Int] {
+            let entry=HistoryEntry(date:Date(timeIntervalSince1970:1000),label:"Fixture",text:["Your document was saved successfully"])
+            let value=NaturalMemory.grounded(title:"Saved",summary:"You saved the document.",references:references,excerpts:NaturalMemory.excerpts([entry]))
+            print(String(decoding:try JSONSerialization.data(withJSONObject:["accepted":value != nil,"summary":value?.summary ?? "","quotes":value?.quotes ?? []]),as:UTF8.self))
+        }
+        else if let draft=command["draft"] as? [String:Any],let content=command["content"] as? [String],let support=draft["evidence"] as? [[String:Any]] {
+            let entry=HistoryEntry(date:Date(timeIntervalSince1970:1000),label:"Fixture",text:content)
+            let excerpts=NaturalMemory.excerpts([entry])
+            let value=NaturalMemory.grounded(title:draft["title"] as? String ?? "",summary:draft["summary"] as? String ?? "",
+                support:support.map{MemorySupport(excerpt:$0["excerpt"] as? Int ?? 0,quote:$0["quote"] as? String ?? "")},excerpts:excerpts)
+            let output:[String:Any]=["accepted":value != nil,"title":value?.title ?? "","summary":value?.summary ?? "","quotes":value?.quotes ?? [],"prompt":NaturalMemory.excerptPrompt(excerpts)]
             print(String(decoding:try JSONSerialization.data(withJSONObject:output),as:UTF8.self))
         }
         else if command["recreate"] as? Bool == true { handler=DesktopExportProtocol(folder:folder);configure(handler);print("{\"recreated\":true}") }

@@ -24,7 +24,7 @@ class DesktopExportTests(unittest.TestCase):
         cls.temporary = tempfile.TemporaryDirectory()
         cls.root = Path(cls.temporary.name)
         cls.binary = cls.root / "protocol-check"
-        subprocess.run(["xcrun", "swiftc", str(BASE / "Shared/BuildConfiguration.swift"), str(BASE / "Shared/NaturalMemory.swift"), str(BASE / "Shared/ContextText.swift"), str(BASE / "Shared/HistoryReader.swift"), str(BASE / "Shared/MemoryRecord.swift"),
+        subprocess.run(["xcrun", "swiftc", str(BASE / "Shared/BuildConfiguration.swift"), str(BASE / "Shared/HistoryPaths.swift"), str(BASE / "Shared/NaturalMemory.swift"), str(BASE / "Shared/ContextText.swift"), str(BASE / "Shared/HistoryReader.swift"), str(BASE / "Shared/MemoryRecord.swift"),
                         str(BASE / "Shared/DesktopAccess.swift"), str(BASE / "Shared/StoragePolicy.swift"),str(BASE / "Shared/HistoryOffload.swift"), str(BASE / "Tunnel/DesktopExportServer.swift"), str(BASE / "tests/desktop-export/main.swift"),
                         "-o", str(cls.binary)], check=True)
 
@@ -155,92 +155,81 @@ class DesktopExportTests(unittest.TestCase):
         self.assertEqual(proof["entries"][0]["text"],["7:58 PM"])
         self.assertEqual(proof["missing_ids"],[])
 
-    def test_semantic_summary_accepts_grounded_topics_and_rejects_invented_activity(self):
-        content=["7:58 PM","Use the app","Chriswillx • The Winter Arc Mindset"]
-        def check(summary,quotes):
-            self.worker.stdin.write(json.dumps({"draft":{"title":"Winter Arc Mindset","summary":summary,"quotes":quotes},"content":content})+"\n")
-            self.worker.stdin.flush();return json.loads(self.worker.stdout.readline())
-        quotes=["The Winter Arc Mindset"]
-        good=check("The page focused on The Winter Arc Mindset, featuring Chriswillx.",quotes)
-        self.assertTrue(good["accepted"]);self.assertEqual(good["meaningful_count"],1)
-        self.assertTrue(check("You browsed The Winter Arc Mindset and reviewed its topic.",quotes)["accepted"])
-        self.assertFalse(check("You won a game about The Winter Arc Mindset.",quotes)["accepted"])
-        self.assertFalse(check("You purchased The Winter Arc Mindset.",quotes)["accepted"])
-        self.assertFalse(check("You engaged with posts about The Winter Arc Mindset.",quotes)["accepted"])
-        self.assertFalse(check("You were interested in The Winter Arc Mindset.",quotes)["accepted"])
-        self.assertFalse(check("The page showed a comment from Chriswillx.",quotes)["accepted"])
-        self.assertFalse(check("Chriswillx sent messages about The Winter Arc Mindset.",quotes)["accepted"])
-        self.assertFalse(check("The calendar showed a meeting for 2025-01-01 at 10:00 AM.",quotes)["accepted"])
-        self.assertTrue(check("Repeated posts centered on The Winter Arc Mindset.",quotes)["accepted"])
-        self.assertFalse(check("Instagram showed The Winter Arc Mindset.",quotes)["accepted"])
-        self.assertFalse(check("The page discussed a trip to Antarctica.",["trip to Antarctica"])["accepted"])
+    def generated(self,title,summary,evidence,content=None):
+        self.worker.stdin.write(json.dumps({"draft":{"title":title,"summary":summary,"evidence":evidence},
+                                          "content":content or ["Your document was saved successfully"]})+"\n")
+        self.worker.stdin.flush()
+        return json.loads(self.worker.stdout.readline())
 
-    def test_summary_retains_distinctive_subject_and_rejects_category_only_prose(self):
-        content=["Mira Lane • @miralane. 2h", "Introducing Lumen Pocket, a local model computer", "Lumen Pocket has 64 GB memory and offline model support"]
-        def check(summary,quotes):
-            self.worker.stdin.write(json.dumps({"draft":{"title":"Lumen Pocket discussion","summary":summary,"quotes":quotes},"content":content})+"\n")
-            self.worker.stdin.flush();return json.loads(self.worker.stdout.readline())
-        quotes=[content[2]]
-        self.assertTrue(check("You browsed the Lumen Pocket announcement and its 64 GB memory and offline model discussion.",quotes)["accepted"])
-        self.assertFalse(check("You browsed a few posts on social media.",quotes)["accepted"])
-        self.assertFalse(check("You reviewed technology news and hardware developments.",quotes)["accepted"])
-        self.assertFalse(check("You browsed Mira Lane's posts.",[content[0]])["accepted"])
-        self.assertFalse(check("You reviewed Lumen Pocket with 128 GB memory.",quotes)["accepted"])
+    def test_model_prose_is_preserved_without_coded_verb_or_sentence_templates(self):
+        summary="You finished editing the proposal and saved it."
+        value=self.generated("Proposal saved",summary,[{"excerpt":1,"quote":"saved successfully"}])
+        self.assertTrue(value["accepted"])
+        self.assertEqual(value["summary"],summary)
+        self.assertEqual(value["title"],"Proposal saved")
+        self.assertEqual(value["quotes"],["saved successfully"])
+        self.assertIn("1970-01-01T00:16:40Z",value["prompt"])
 
-    def test_prompt_ignores_generic_author_rows_and_marked_ads(self):
-        content=["Mira Lane • @miralane. 2h", "Lumen Pocket supports local models on 64 GB memory", "Acme Store • @acme. 1h", "Ad", "Buy an Acme subscription today for 50 dollars", "Noah Reed • @noah. 1h", "Offline models keep the prompt on your own device"]
-        self.worker.stdin.write(json.dumps({"draft":{"title":"Local models","summary":"You reviewed Lumen Pocket and local models.","quotes":[content[1]]},"content":content})+"\n")
-        self.worker.stdin.flush();value=json.loads(self.worker.stdout.readline())
-        self.assertIn("Lumen Pocket",value["prompt"])
-        self.assertIn("Offline models",value["prompt"])
-        self.assertNotIn("Acme subscription",value["prompt"])
-        self.assertNotIn("Acme Store",value["prompt"])
-        self.assertIn("Context label (not a supporting quote)",value["prompt"])
+    def test_grounding_requires_every_quote_and_its_own_excerpt_to_exist(self):
+        good={"excerpt":1,"quote":"saved successfully"}
+        for bad in [{"excerpt":999,"quote":"saved successfully"},{"excerpt":1,"quote":"published successfully"},
+                    {"excerpt":1,"quote":""}]:
+            self.assertFalse(self.generated("Saved","Model-authored prose.",[good,bad])["accepted"])
+        self.assertFalse(self.generated("Saved","Model-authored prose.",[])["accepted"])
 
-    def topics(self,content,topics):
-        self.worker.stdin.write(json.dumps({"topics":topics,"content":content,"label":"Fixture"})+"\n")
-        self.worker.stdin.flush();return json.loads(self.worker.stdout.readline())
+    def test_prose_and_support_byte_limits_do_not_silently_truncate_claims(self):
+        good=[{"excerpt":1,"quote":"saved successfully"}]
+        self.assertFalse(self.generated("💡"*41,"A summary.",good)["accepted"])
+        self.assertFalse(self.generated("Saved","💡"*251,good)["accepted"])
+        self.assertFalse(self.generated("Saved","",good)["accepted"])
+        self.assertFalse(self.generated("Saved","A summary.",[{"excerpt":1,"quote":"a"*241}],content=["a"*300])["accepted"])
+        self.assertFalse(self.generated("Saved","A summary.",good*5)["accepted"])
 
-    def test_subjects_are_bound_to_one_excerpt_and_cannot_be_owner_actions(self):
-        content=["Introducing Lumen Pocket, a computer for offline models", "Lumen Pocket has 64 GB memory"]
-        good=self.topics(content,[{"subject":"Lumen Pocket","detail":"64 GB memory","excerpts":[1]}])
-        self.assertTrue(good["accepted"])
-        self.assertIn("64 GB memory",good["summary"])
-        self.assertNotIn("128 GB",self.topics(content,[{"subject":"Lumen Pocket","detail":"128 GB memory","excerpts":[1]}])["summary"])
-        self.assertFalse(self.topics(content,[{"subject":"AI","excerpts":[1]}])["accepted"])
-        self.assertFalse(self.topics(["Brush strokes painted every frame"],[{"subject":"strokes","excerpts":[1]}])["accepted"])
-        self.assertFalse(self.topics(content,[{"subject":"You met Lumen Pocket","excerpts":[1]}])["accepted"])
-        self.assertFalse(self.topics(content,[{"subject":"Lumen Pocket","excerpts":[999]}])["accepted"])
-        self.assertFalse(self.topics(content,[{"subject":"Lumen Pocket","excerpts":[1,999]}])["accepted"])
-        self.assertFalse(self.topics(content,[{"subject":"Invented Device","excerpts":[1]}])["accepted"])
-        self.assertTrue(all(len(q.encode())<=240 for q in good["quotes"]))
+    def test_quote_check_does_not_claim_to_verify_semantic_interpretations(self):
+        # Generation instructions enforce semantics; this gate only verifies
+        # copied evidence. It cannot validate an action or a named pattern.
+        prose="The model's interpretation is unchanged by quote validation."
+        self.assertEqual(self.generated("Interpretation",prose,[{"excerpt":1,"quote":"saved successfully"}])["summary"],prose)
 
-    def test_wrapped_headlines_keep_continuation_and_marked_ads_stay_out(self):
-        result=self.topics(["Introducing Lumen Pocket, a personal AI", "Computer", "Lumen Pocket has 64 GB memory"],
-                           [{"subject":"Lumen Pocket, a personal AI Computer","detail":"64 GB memory","excerpts":[1]}])
-        self.assertTrue(result["accepted"])
-        self.assertIn("AI Computer",result["summary"])
+    def test_model_references_copy_source_quotes_and_reject_missing_ids(self):
+        for refs,accepted in [([1],True),([999],False),([1,999],False),([],False)]:
+            self.worker.stdin.write(json.dumps({"references":refs})+"\n");self.worker.stdin.flush()
+            value=json.loads(self.worker.stdout.readline())
+            self.assertEqual(value["accepted"],accepted)
+            if accepted:
+                self.assertEqual(value["summary"],"You saved the document.")
+                self.assertEqual(value["quotes"],["Your document was saved successfully"])
 
-    def test_correction_does_not_repeat_uncorrected_numeric_claim(self):
-        content=["Lumen Pocket has 128 GB memory", "Mira Lane • @mira. 1h", "Correction: the earlier memory size was a typo"]
-        self.assertFalse(self.topics(content,[{"subject":"128 GB memory","excerpts":[1]}])["accepted"])
+    def test_model_abstention_supersedes_old_memory_without_deleting_evidence(self):
+        memory=self.memory_fixture();memory["format"]=14
+        self.append_rows([memory])
+        (self.folder/"phone/memory-cursor.json").write_text(json.dumps({"format_revision":16,
+            "abstained_10min_"+str(int(memory["start"])):memory["end"]}))
+        self.assertEqual(self.opened(operation="memories")["returned"],0)
+        proof=self.opened(operation="evidence",ids=[memory["id"]])
+        self.assertEqual(proof["missing_ids"],[])
+        self.assertEqual(proof["entries"][0]["id"],memory["id"])
+
+    def test_generation_diagnostics_expose_codes_without_private_drafts_or_errors(self):
+        (self.folder/"phone/memory-status.json").write_text(json.dumps({"state":"deferred","generation_failure":"context_limit",
+            "reason":"private model error", "candidate_summary":"private prose", "prompt":"private content"}))
+        result=self.opened(operation="status")["memory_generation"]
+        self.assertEqual(result,{"state":"deferred","generation_failure":"context_limit"})
+
+    def test_backup_exclusion_preserves_existing_history_and_is_idempotent(self):
+        self.worker.stdin.write('{"backup_policy":true}\n');self.worker.stdin.flush()
+        value=json.loads(self.worker.stdout.readline())
+        self.assertTrue(value["excluded"])
+        self.assertEqual(value["retained"],"retained fixture")
 
     def test_new_memory_format_replaces_old_window_and_keeps_original_by_id(self):
         old=self.memory_fixture();old["id"]="m-old-specificity"
-        new=self.memory_fixture();new["id"]="m-new-specificity";new["format"]=10;new["generatedAt"]=self.now+1
+        new=self.memory_fixture();new["id"]="m-new-specificity";new["format"]=14;new["generatedAt"]=self.now+1
         new["summary"]="You reviewed the Lumen Pocket launch and its offline model support."
         self.append_rows([old,new])
         self.assertEqual([row["id"] for row in self.opened(operation="memories")["entries"]],[new["id"]])
         proof=self.opened(operation="evidence",ids=[old["id"],new["id"]])
         self.assertEqual(proof["missing_ids"],[])
-
-    def test_sparse_topic_fallback_omits_fragments_and_duplicate_quotes(self):
-        content=["nrpcJnn2112cJhpr •","and for girls","chriswillx • The Winter Arc Mindset"]
-        self.worker.stdin.write(json.dumps({"draft":{"title":"Topic","summary":"The user watched a video.","quotes":[content[2],content[1],content[2]]},"content":content})+"\n")
-        self.worker.stdin.flush();value=json.loads(self.worker.stdout.readline())
-        self.assertFalse(value["accepted"])
-        self.assertEqual(value["fallback_title"],"The Winter Arc Mindset")
-        self.assertEqual(value["fallback_summary"],"Content about “The Winter Arc Mindset” appeared during this period.")
 
     def test_screenshot_permission_rate_limit_and_revocation(self):
         request,body=self.request_body(operation="screenshot")
