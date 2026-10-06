@@ -91,12 +91,9 @@ final class HistoryController: UIViewController {
         }
     }
     private func buildInterface() {
-        let more=UIButton(type:.system);var moreConfig=UIButton.Configuration.glass();moreConfig.image=UIImage(systemName:"gearshape");moreConfig.cornerStyle = .capsule;more.configuration=moreConfig
+        let more=UIButton(type:.system);var moreConfig=UIButton.Configuration.plain();moreConfig.image=UIImage(systemName:"gearshape");moreConfig.preferredSymbolConfigurationForImage = .init(pointSize:20,weight:.regular);moreConfig.baseForegroundColor = .secondaryLabel;more.configuration=moreConfig
         more.widthAnchor.constraint(equalToConstant:44).isActive=true;more.heightAnchor.constraint(equalToConstant:44).isActive=true
         more.accessibilityLabel="Settings";more.addTarget(self,action:#selector(settingsPressed),for:.touchUpInside)
-        let heading=HistoryUI.stack([UIView(),more],spacing:12,axis:.horizontal);heading.alignment = .center
-        heading.isLayoutMarginsRelativeArrangement=true
-        heading.directionalLayoutMargins=NSDirectionalEdgeInsets(top:0,leading:20,bottom:0,trailing:20)
         let stateLabels=HistoryUI.stack([stateTitle,stateSubtitle],spacing:4)
         captureSwitch.onTintColor=HistoryUI.accent
         captureSwitch.accessibilityLabel="Capture"
@@ -111,7 +108,18 @@ final class HistoryController: UIViewController {
             HistoryUI.stack([savedSize,HistoryUI.label("Stored here",style:.caption1,color:.secondaryLabel)],spacing:3),
             HistoryUI.stack([retentionValue,retentionCaption],spacing:3)
         ],spacing:20,axis:.horizontal);metrics.distribution = .fillEqually
-        let content=HistoryUI.stack([stateRow,HistoryUI.separator(),metrics],spacing:20)
+        let storageRow=HistoryUI.stack([metrics,more],spacing:12,axis:.horizontal);storageRow.alignment = .center
+        let configureStorageLayout = { [weak metrics,weak storageRow] (category:UIContentSizeCategory) in
+            let expanded=category.isAccessibilityCategory
+            metrics?.axis=expanded ? .vertical:.horizontal
+            metrics?.distribution=expanded ? .fill:.fillEqually
+            storageRow?.alignment=expanded ? .top:.center
+        }
+        configureStorageLayout(traitCollection.preferredContentSizeCategory)
+        registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (view:HistoryController, _:UITraitCollection) in
+            configureStorageLayout(view.traitCollection.preferredContentSizeCategory)
+        }
+        let content=HistoryUI.stack([stateRow,HistoryUI.separator(),storageRow],spacing:20)
         let captureCard=HistoryUI.card(content);captureCard.layer.cornerRadius=20
         let captureSection=HistoryUI.stack([captureCard,status],spacing:10)
         status.translatesAutoresizingMaskIntoConstraints=false
@@ -129,7 +137,7 @@ final class HistoryController: UIViewController {
         let previewCard=HistoryUI.card(previewStack,inset:0)
         let recentSection=HistoryUI.stack([recentHeading,previewCard],spacing:2)
         let agents=HistoryUI.menuRow(title:"Desktop connection",subtitle:"Connect a desktop",symbol:"laptopcomputer",target:self,action:#selector(agentsPressed),subtitleView:agentSubtitle)
-        let stack=HistoryUI.stack([heading,captureSection,recentSection,agents],spacing:24)
+        let stack=HistoryUI.stack([captureSection,recentSection,agents],spacing:24)
         let scroll=UIScrollView();scroll.translatesAutoresizingMaskIntoConstraints=false;view.addSubview(scroll);scroll.alwaysBounceVertical=true
         let refresh=UIRefreshControl();refresh.addTarget(self,action:#selector(pullRefresh(_:)),for:.valueChanged);scroll.refreshControl=refresh
         stack.translatesAutoresizingMaskIntoConstraints=false;scroll.addSubview(stack)
