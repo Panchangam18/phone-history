@@ -12,12 +12,32 @@ final class HistoryListController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad();title="History"
+        navigationItem.largeTitleDisplayMode = .never
+        navigationItem.titleView=UIView()
+        let heading=HistoryUI.label("History",style:.title2,weight:.bold)
+        heading.font=UIFontMetrics(forTextStyle:.title2).scaledFont(for:.systemFont(ofSize:22,weight:.bold),maximumPointSize:28)
+        heading.accessibilityTraits = .header
+        let titleContainer=UIView();heading.translatesAutoresizingMaskIntoConstraints=false;titleContainer.addSubview(heading)
+        NSLayoutConstraint.activate([
+            heading.leadingAnchor.constraint(equalTo:titleContainer.leadingAnchor,constant:20),
+            heading.trailingAnchor.constraint(equalTo:titleContainer.trailingAnchor),
+            heading.topAnchor.constraint(equalTo:titleContainer.topAnchor),
+            heading.bottomAnchor.constraint(equalTo:titleContainer.bottomAnchor)])
+        let titleItem=UIBarButtonItem(customView:titleContainer)
+        if #available(iOS 26.0, *) { titleItem.hidesSharedBackground=true }
+        navigationItem.leftBarButtonItem=titleItem
         tableView.backgroundColor = .systemGroupedBackground;tableView.rowHeight=UITableView.automaticDimension;tableView.estimatedRowHeight=140
         navigationItem.rightBarButtonItem=UIBarButtonItem(barButtonSystemItem:.done,target:self,action:#selector(close))
         refreshControl=UIRefreshControl();refreshControl?.addTarget(self,action:#selector(reload),for:.valueChanged)
         mode.selectedSegmentIndex=0;mode.addTarget(self,action:#selector(reload),for:.valueChanged)
-        mode.frame=CGRect(x:20,y:12,width:max(250,view.bounds.width-40),height:34)
-        let header=UIView(frame:CGRect(x:0,y:0,width:view.bounds.width,height:58));header.addSubview(mode);tableView.tableHeaderView=header
+        let header=UIView(frame:CGRect(x:0,y:0,width:view.bounds.width,height:54));header.addSubview(mode)
+        mode.translatesAutoresizingMaskIntoConstraints=false
+        NSLayoutConstraint.activate([
+            mode.leadingAnchor.constraint(equalTo:header.leadingAnchor,constant:20),
+            mode.trailingAnchor.constraint(equalTo:header.trailingAnchor,constant:-20),
+            mode.topAnchor.constraint(equalTo:header.topAnchor,constant:8),
+            mode.bottomAnchor.constraint(equalTo:header.bottomAnchor,constant:-12)])
+        tableView.tableHeaderView=header
         loadHistory()
     }
     @objc private func close() { dismiss(animated:true) }

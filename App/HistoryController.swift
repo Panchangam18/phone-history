@@ -8,6 +8,7 @@ final class HistoryController: UIViewController {
     private var busy = false { didSet { updateCaptureControl() } }
     private var captureEnabled = false
     private let stateTitle = HistoryUI.label("Paused",style:.body,weight:.medium)
+    private let stateSubtitle = HistoryUI.label("Resume anytime",style:.subheadline,color:.secondaryLabel)
     private let captureSwitch = UISwitch()
     private let captureProgress = UIActivityIndicatorView(style:.medium)
     private let retentionValue = HistoryUI.label("512 KB",style:.body,weight:.medium)
@@ -47,7 +48,7 @@ final class HistoryController: UIViewController {
         }
         writeVisibility(true)
         do { try importBootstrapTrust(); refreshStatus() }
-        catch { status.text = error.localizedDescription }
+        catch { showStatus(error.localizedDescription) }
     }
     deinit {
         if let foregroundObserver { NotificationCenter.default.removeObserver(foregroundObserver) }
@@ -90,14 +91,14 @@ final class HistoryController: UIViewController {
         }
     }
     private func buildInterface() {
-        let logo=UIImageView(image:UIImage(named:"HistoryLogo"));logo.layer.cornerRadius=13;logo.layer.cornerCurve = .continuous;logo.clipsToBounds=true
-        NSLayoutConstraint.activate([logo.widthAnchor.constraint(equalToConstant:44),logo.heightAnchor.constraint(equalToConstant:44)])
         let brand=HistoryUI.label("Phone History",style:.title2,weight:.bold)
         let more=UIButton(type:.system);var moreConfig=UIButton.Configuration.glass();moreConfig.image=UIImage(systemName:"gearshape");moreConfig.cornerStyle = .capsule;more.configuration=moreConfig
         more.widthAnchor.constraint(equalToConstant:44).isActive=true;more.heightAnchor.constraint(equalToConstant:44).isActive=true
         more.accessibilityLabel="Settings";more.addTarget(self,action:#selector(settingsPressed),for:.touchUpInside)
-        let heading=HistoryUI.stack([logo,brand,UIView(),more],spacing:12,axis:.horizontal);heading.alignment = .center
-        let stateLabels=HistoryUI.stack([stateTitle,HistoryUI.label("On this iPhone",style:.subheadline,color:.secondaryLabel)],spacing:4)
+        let heading=HistoryUI.stack([brand,UIView(),more],spacing:12,axis:.horizontal);heading.alignment = .center
+        heading.isLayoutMarginsRelativeArrangement=true
+        heading.directionalLayoutMargins=NSDirectionalEdgeInsets(top:0,leading:20,bottom:0,trailing:20)
+        let stateLabels=HistoryUI.stack([stateTitle,stateSubtitle],spacing:4)
         captureSwitch.onTintColor=HistoryUI.accent
         captureSwitch.accessibilityLabel="Capture"
         captureSwitch.addTarget(self,action:#selector(capturePressed),for:.valueChanged)
@@ -106,7 +107,7 @@ final class HistoryController: UIViewController {
         captureProgress.hidesWhenStopped=true
         let stateRow=HistoryUI.stack([stateLabels,captureProgress,captureSwitch],spacing:16,axis:.horizontal);stateRow.alignment = .center
         status.font = .preferredFont(forTextStyle:.footnote);status.adjustsFontForContentSizeCategory=true;status.textColor = .secondaryLabel;status.numberOfLines=0
-        status.text="Ready when you are."
+        status.isHidden=true
         let metrics=HistoryUI.stack([
             HistoryUI.stack([savedSize,HistoryUI.label("Stored here",style:.caption1,color:.secondaryLabel)],spacing:3),
             HistoryUI.stack([retentionValue,retentionCaption],spacing:3)
@@ -123,12 +124,13 @@ final class HistoryController: UIViewController {
         let all=UIButton(type:.system);all.setTitle("See all",for:.normal);all.addTarget(self,action:#selector(recentPressed),for:.touchUpInside)
         all.titleLabel?.font = .preferredFont(forTextStyle:.subheadline);all.heightAnchor.constraint(greaterThanOrEqualToConstant:44).isActive=true
         let recentHeading=HistoryUI.stack([recent,UIView(),all],axis:.horizontal);recentHeading.alignment = .center
+        recentHeading.isLayoutMarginsRelativeArrangement=true
+        recentHeading.directionalLayoutMargins=NSDirectionalEdgeInsets(top:0,leading:20,bottom:0,trailing:20)
         previewStack.axis = .vertical;previewStack.spacing=0
         let previewCard=HistoryUI.card(previewStack,inset:0)
         let recentSection=HistoryUI.stack([recentHeading,previewCard],spacing:2)
-        let agents=HistoryUI.menuRow(title:"Desktop agents",subtitle:"Connect a desktop",symbol:"laptopcomputer",target:self,action:#selector(agentsPressed),subtitleView:agentSubtitle)
-        let privacy=HistoryUI.label("Private by default · Stored on your iPhone",style:.caption1,color:.secondaryLabel);privacy.textAlignment = .center
-        let stack=HistoryUI.stack([heading,captureSection,recentSection,agents,privacy],spacing:24)
+        let agents=HistoryUI.menuRow(title:"Desktop connection",subtitle:"Connect a desktop",symbol:"laptopcomputer",target:self,action:#selector(agentsPressed),subtitleView:agentSubtitle)
+        let stack=HistoryUI.stack([heading,captureSection,recentSection,agents],spacing:24)
         let scroll=UIScrollView();scroll.translatesAutoresizingMaskIntoConstraints=false;view.addSubview(scroll);scroll.alwaysBounceVertical=true
         let refresh=UIRefreshControl();refresh.addTarget(self,action:#selector(pullRefresh(_:)),for:.valueChanged);scroll.refreshControl=refresh
         stack.translatesAutoresizingMaskIntoConstraints=false;scroll.addSubview(stack)
@@ -153,15 +155,28 @@ final class HistoryController: UIViewController {
         if CommandLine.arguments.contains("--ui-preview") {
             let enabled=captureSwitch.isOn
             updatePresentation(state:enabled ? "Capturing" : "Paused",enabled:enabled,bytes:48320)
-            status.text=enabled ? "History stays on this iPhone unless you export it." : "Saved history stays here while capture is paused."
+            showStatus(nil)
             return
         }
         #endif
         if captureEnabled { stopPressed() } else { startPressed() }
     }
     @objc private func pullRefresh(_ sender:UIRefreshControl) { refreshStatus();sender.endRefreshing() }
+    private func showStatus(_ message:String?) {
+        status.text=message
+        status.isHidden=message?.isEmpty != false
+    }
+    private func setCaptureState(_ state:String) {
+        stateTitle.text=state
+        switch state {
+        case "Capturing":stateSubtitle.text="On this iPhone"
+        case "Paused":stateSubtitle.text="Resume anytime"
+        case "Starting","Stopping","Pausing","Reconnecting":stateSubtitle.text="Please wait"
+        default:stateSubtitle.text="Needs your attention"
+        }
+    }
     private func updatePresentation(state:String, enabled:Bool, bytes:Int64) {
-        captureEnabled=enabled;stateTitle.text=state
+        captureEnabled=enabled;setCaptureState(state)
         savedSize.text=ByteCountFormatter.string(fromByteCount:localBytes ?? bytes,countStyle:.file)
         updateCaptureControl()
     }
@@ -181,7 +196,7 @@ final class HistoryController: UIViewController {
                 }.value
                 guard !Task.isCancelled else { return }
                 localBytes=result.1;savedSize.text=ByteCountFormatter.string(fromByteCount:result.1,countStyle:.file)
-                agentSubtitle.text=result.2 == 0 ? "Connect Codex or Claude" : "\(result.2) approved \(result.2 == 1 ? "desktop":"desktops")"
+                agentSubtitle.text=result.2 == 0 ? "Connect a desktop" : "\(result.2) approved \(result.2 == 1 ? "desktop":"desktops")"
                 entries=result.0
             } catch { showPreview([],error:true);return }
             guard !Task.isCancelled else { return };showPreview(entries)
@@ -243,7 +258,7 @@ final class HistoryController: UIViewController {
     }
     @objc private func startPressed() {
         guard !busy else { return }
-        busy = true; stateTitle.text="Starting"; status.text = "Starting capture. Approve the VPN configuration if iOS asks."
+        busy = true; setCaptureState("Starting"); showStatus("Approve the VPN configuration if iOS asks.")
         Task {
             defer { busy = false }
             do {
@@ -272,12 +287,12 @@ final class HistoryController: UIViewController {
                     options["trialSeconds"] = NSNumber(value:min(600,max(60,seconds)))
                 }
                 try manager.connection.startVPNTunnel(options:options)
-                status.text = "Connecting. You can use your other apps normally."; refreshConnectionStatus()
-            } catch { status.text = error.localizedDescription }
+                showStatus(nil); refreshConnectionStatus()
+            } catch { showStatus(error.localizedDescription) }
         }
     }
     @objc private func stopPressed() {
-        guard !busy else { return }; busy = true;stateTitle.text="Pausing";status.text="Pausing capture…"
+        guard !busy else { return }; busy = true;setCaptureState("Pausing");showStatus(nil)
         Task {
             defer { busy = false }
             do {
@@ -289,8 +304,8 @@ final class HistoryController: UIViewController {
                     manager.connection.stopVPNTunnel()
                     Task.detached(priority:.utility) { CaptureControlState.update(enabled:false) }
                 }
-                status.text = "Capture is paused. Your saved history is still here."; refreshConnectionStatus()
-            } catch { status.text = error.localizedDescription }
+                showStatus(nil); refreshConnectionStatus()
+            } catch { showStatus(error.localizedDescription) }
         }
     }
     @objc private func refreshPressed() { refreshStatus() }
@@ -315,7 +330,7 @@ final class HistoryController: UIViewController {
                     try exportForInspection(folder)
                 }
                 refreshConnectionStatus()
-            } catch { status.text=error.localizedDescription }
+            } catch { showStatus(error.localizedDescription) }
         }
     }
     private func writeVisibility(_ foreground:Bool) {
@@ -362,8 +377,7 @@ final class HistoryController: UIViewController {
                 let hint = vpn == .disconnected || vpn == .invalid ? "Turn capture on to resume. Saved history stays on this iPhone." :
                     (state == "No recent capture update" || state == "Capture needs restart" ? "Turn capture off and on to retry." : "Status refreshes when you return.")
                 updatePresentation(state:state,enabled:![NEVPNStatus.invalid,.disconnected,.disconnecting].contains(vpn),bytes:bytes)
-                status.text = state == "Capturing" ? "History stays on this iPhone unless you export it." :
-                    (state == "Paused" ? "Saved history stays here while capture is paused." : hint)
+                showStatus(state == "Capturing" || state == "Paused" ? nil : hint)
                 let documents = FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0]
                 let destination = documents.appendingPathComponent("history-export/view-status.json")
                 let snapshot:[String:Any] = ["vpn_status":vpnState,"effective_state":state,"worker_state":raw,
@@ -372,7 +386,7 @@ final class HistoryController: UIViewController {
                 if CommandLine.arguments.contains("--verification-export") {
                     try JSONSerialization.data(withJSONObject:snapshot).write(to:destination,options:[.atomic,.completeFileProtectionUntilFirstUserAuthentication])
                 }
-            } catch { status.text = "Could not check capture status. \(error.localizedDescription)" }
+            } catch { showStatus("Could not check capture status. \(error.localizedDescription)") }
         }
     }
     @objc private func recentPressed() { present(HistoryUI.sheet(HistoryListController(style:.insetGrouped)),animated:true) }
@@ -396,11 +410,11 @@ final class HistoryController: UIViewController {
                             let copy = documents.appendingPathComponent("history-export")
                             if FileManager.default.fileExists(atPath:copy.path) { try FileManager.default.removeItem(at:copy) }
                             self?.refreshStatus()
-                        } catch { self?.status.text = "History could not be erased. \(error.localizedDescription)" }
+                        } catch { self?.showStatus("History could not be erased. \(error.localizedDescription)") }
                     })
                 }
                 present(alert,animated:true)
-            } catch { status.text = error.localizedDescription }
+            } catch { showStatus(error.localizedDescription) }
         }
     }
     private func exportForInspection(_ folder: URL) throws {
@@ -433,11 +447,11 @@ final class HistoryController: UIViewController {
         do {
             let folder = try HistoryPaths.folder().appendingPathComponent("Records",isDirectory:true)
             let files = try FileManager.default.contentsOfDirectory(at:folder,includingPropertiesForKeys:nil).filter { $0.pathExtension == "jsonl" }
-            guard !files.isEmpty else { status.text = "No history records have been saved yet."; return }
+            guard !files.isEmpty else { showStatus("No history records have been saved yet."); return }
             let share = UIActivityViewController(activityItems:files,applicationActivities:nil)
             share.popoverPresentationController?.sourceView = view
             present(share,animated:true)
-        } catch { status.text = error.localizedDescription }
+        } catch { showStatus(error.localizedDescription) }
     }
     #if targetEnvironment(simulator)
     private func showSimulatorPreview() {
@@ -446,8 +460,7 @@ final class HistoryController: UIViewController {
         let paused=CommandLine.arguments.contains("--ui-paused")
         let state=CommandLine.arguments.contains("--ui-stale") ? "No recent capture update" : (paused ? "Paused" : "Capturing")
         updatePresentation(state:state,enabled:!paused,bytes:48320)
-        status.text=paused ? "Saved history stays here while capture is paused." : "History stays on this iPhone unless you export it."
-        if CommandLine.arguments.contains("--ui-stale") { status.text="Turn capture off and on to retry." }
+        showStatus(CommandLine.arguments.contains("--ui-stale") ? "Turn capture off and on to retry." : nil)
         agentSubtitle.text="1 approved desktop"
         showPreview([
             HistoryEntry(date:Date(),label:"Safari",text:["A quieter way to keep track", "Notes on making useful things."]),

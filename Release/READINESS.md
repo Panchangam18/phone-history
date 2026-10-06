@@ -4,6 +4,7 @@ Status checked 2026-10-06: build 69 archived, installed, uploaded and processed 
 
 ## Prepared
 
+- Development build 71 removes the home logo and redundant privacy captions, uses Desktop connection consistently, and shows Resume anytime while paused. Home section headings align with card content. The History sheet has a compact, inset plain title without a toolbar background and a full-width mode selector. The build compiled and installed on the development iPhone; simulator checks verified the title appearance and pause/resume copy. Build 69 remains the App Store Connect candidate; build 71 has not been uploaded or verified through TestFlight.
 - Development build 70 simplifies the home capture control to a native switch, a single state title, smaller storage values and a neutral card. It compiled, installed and launched on the development iPhone. Simulator checks covered pause/resume presentation, light/dark appearance and the largest Dynamic Type size with a long status message. Build 69 remains the App Store Connect candidate; build 70 has not been uploaded or verified through TestFlight.
 - Public source and licenses, privacy/security documentation and desktop integration.
 - App Store listing draft in `app-store-metadata.json`, including explicit developer-service setup limitations.
