@@ -1,6 +1,6 @@
 # App Store preparation
 
-Status checked 2026-10-06: build 69 archived, installed, uploaded and processed successfully. It is now saved as the build attached to version 1.0, replacing build 64, and shows Missing Compliance. An Add for Review attempt was rejected with two required items: Content Rights Information and export compliance information. Version 1.0 remains Prepare for Submission. Not submitted or approved. The background worker generated model-authored prose on the development phone; this is not production-signed verification.
+Status checked 2026-10-06: build 69 archived, installed, uploaded and processed successfully. It is now saved as the build attached to version 1.0, replacing build 64, and shows Missing Compliance. The account holder selected the affirmative Content Rights declaration; the page was saved and the next Add for Review attempt reported only missing export compliance information. The account holder's non-trader DSA declaration is saved and active. These declarations do not establish independent legal clearance. Version 1.0 remains Prepare for Submission. Not submitted or approved. The background worker generated model-authored prose on the development phone; this is not production-signed verification.
 
 ## Prepared
 
@@ -31,8 +31,8 @@ The reviewer needs working first-time setup on their own device. An imported tru
 
 - Build 69 is attached. Resolve Missing Compliance, then test the production-signed build through internal TestFlight; development installation alone does not establish production capture behavior.
 - Current iOS compatibility, recipient setup, reboot/reconnect behavior and longer energy checks.
-- Account holder's content-rights declaration; any accessibility claims must reflect actual verification.
-- EU trader status and regional requirements where applicable; the account still requires a trader/non-trader declaration. A missing declaration or lack of trader registration does not establish non-trader status. Do not invent a legal status or trade address. Selecting worldwide storefronts does not satisfy these requirements.
+- The account holder's affirmative content-rights declaration is saved; supporting authorization has not been independently established. Any accessibility claims must reflect actual verification.
+- The account holder selected non-trader and DSA compliance is active. Other regional requirements remain applicable; selecting worldwide storefronts does not itself satisfy them.
 - Encryption export classification. The app uses both Apple CryptoKit and third-party TLS/cryptographic implementations; do not automatically claim encryption is limited to Apple's OS. Selecting standard additional encryption and France availability in Apple's questionnaire explicitly requires documentation upload and approval. No compliance exemption is set in Info.plist without a supported determination.
 - Final submission only when the app can be fully exercised by reviewers and its declarations are accurate.
 
