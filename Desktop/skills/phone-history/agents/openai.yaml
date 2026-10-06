@@ -1,0 +1,4 @@
+interface:
+  display_name: "Phone History"
+  short_description: "Read history from your approved connected iPhone"
+  default_prompt: "Use $phone-history to summarize my recent phone activity from my connected iPhone."
