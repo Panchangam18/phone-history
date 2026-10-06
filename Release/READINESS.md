@@ -1,6 +1,6 @@
 # App Store preparation
 
-Status checked 2026-10-05: build 64 uploaded and processed in App Store Connect; Missing Compliance. Version 1.0 remains Prepare for Submission. Not submitted or approved.
+Status checked 2026-10-05: build 64 uploaded, processed and attached to version 1.0 in App Store Connect; Missing Compliance. Version 1.0 remains Prepare for Submission. Not submitted or approved.
 
 ## Prepared
 
@@ -10,6 +10,7 @@ Status checked 2026-10-05: build 64 uploaded and processed in App Store Connect;
 - Listing description, review notes, support/privacy URLs and the account holder's private review contact saved in App Store Connect. Contact details are intentionally absent from this repository.
 - Data Not Collected privacy answers published with the account holder's explicit approval. Age rating overridden to 18+ for this private activity recorder.
 - Native UI screenshot with synthetic data uploaded; no personal history included.
+- Free pricing saved. Apple Silicon Mac and Vision Pro availability disabled because this capture implementation targets iPhone. Release countries remain pending the account holder's choice.
 - All 42 desktop-export and setup tests passed. Specific-subject memory selection uses exact phrases from numbered evidence, with deterministic activity wording and one model pass per window. This does not eliminate OCR errors or prove actions.
 
 ## Eligibility questions that packaging cannot resolve
@@ -24,7 +25,7 @@ The reviewer needs working first-time setup on their own device. An imported tru
 
 ## Remaining submission fields and checks
 
-- Resolve build 64's Missing Compliance status and select it for the release. Test the production-signed build through internal TestFlight; development installation alone does not establish production capture behavior.
+- Resolve build 64's Missing Compliance status. Test the production-signed build through internal TestFlight; development installation alone does not establish production capture behavior.
 - Current iOS compatibility, recipient setup, reboot/reconnect behavior and longer energy checks.
 - Account holder's content-rights declaration; any accessibility claims must reflect actual verification.
 - Country availability and EU trader status where required; do not invent a legal status or trade address.
