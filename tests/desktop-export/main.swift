@@ -27,12 +27,20 @@ configure(handler)
 while let line = readLine() {
     do {
         let command = try JSONSerialization.jsonObject(with:Data(line.utf8)) as! [String:Any]
-        if let draft=command["draft"] as? [String:Any],let content=command["content"] as? [String] {
+        if let rows=command["topics"] as? [[String:Any]],let content=command["content"] as? [String] {
+            let entry=HistoryEntry(date:Date(),label:command["label"] as? String ?? "Fixture",text:content)
+            let excerpts=NaturalMemory.excerpts([entry])
+            let draft=NaturalMemory.compose(rows.map{MemoryTopic(subject:$0["subject"] as? String ?? "",excerpts:$0["excerpts"] as? [Int] ?? [],detail:$0["detail"] as? String ?? "")},excerpts:excerpts)
+            let fallback=NaturalMemory.excerptFallback(excerpts)
+            let output:[String:Any]=["accepted":draft != nil,"summary":draft?.summary ?? "","quotes":draft?.quotes ?? [],"fallback_summary":fallback?.summary ?? "","excerpts":excerpts.map{$0.text}]
+            print(String(decoding:try JSONSerialization.data(withJSONObject:output),as:UTF8.self))
+        }
+        else if let draft=command["draft"] as? [String:Any],let content=command["content"] as? [String] {
             let entry=HistoryEntry(date:Date(),label:"",text:content)
             let value=MemoryDraft(title:draft["title"] as? String ?? "",summary:draft["summary"] as? String ?? "",quotes:draft["quotes"] as? [String] ?? [])
             let accepted=NaturalMemory.checked(value,entries:[entry]) != nil
             let fallback=NaturalMemory.fallback(value.quotes,entries:[entry])
-            let output:[String:Any]=["accepted":accepted,"meaningful_count":ContextText.content(content).count,"fallback_title":fallback?.title ?? "","fallback_summary":fallback?.summary ?? ""]
+            let output:[String:Any]=["accepted":accepted,"meaningful_count":ContextText.content(content).count,"fallback_title":fallback?.title ?? "","fallback_summary":fallback?.summary ?? "","prompt":NaturalMemory.prompt([entry])]
             print(String(decoding:try JSONSerialization.data(withJSONObject:output),as:UTF8.self))
         }
         else if command["recreate"] as? Bool == true { handler=DesktopExportProtocol(folder:folder);configure(handler);print("{\"recreated\":true}") }

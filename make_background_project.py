@@ -11,7 +11,8 @@ TEAM = option('team')
 BUNDLE = option('bundle_id','com.example.phonehistory')
 GROUP = option('group','group.'+BUNDLE)
 CONTROL_KIND = option('control_kind',BUNDLE+'.capture-toggle')
-BUILD = option('build','60')
+BUILD = option('build','64')
+VERSION = option('version','1.0')
 for name,value in [('bundle_id',BUNDLE),('group',GROUP),('control_kind',CONTROL_KIND)]:
     if not re.fullmatch(r'[A-Za-z0-9.-]+',value): raise ValueError('Invalid '+name)
 if not BUILD.isdigit(): raise ValueError('Build must be an integer')
@@ -33,7 +34,7 @@ for folder in ['App','Tunnel']:
     (BASE/folder/'History.entitlements').write_bytes(plistlib.dumps(entitlements))
 app_info = {'CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)', 'CFBundleDisplayName':'Phone History',
     'CFBundleName':'PhoneHistoryProbe','CFBundleExecutable':'$(EXECUTABLE_NAME)',
-    'CFBundlePackageType':'APPL','CFBundleVersion':BUILD,'CFBundleShortVersionString':'0.3',
+    'CFBundlePackageType':'APPL','CFBundleVersion':BUILD,'CFBundleShortVersionString':VERSION,
     'LSRequiresIPhoneOS':True,'UILaunchScreen':{},'UIApplicationSceneManifest':{
         'UIApplicationSupportsMultipleScenes':False,'UISceneConfigurations':{'UIWindowSceneSessionRoleApplication':[
             {'UISceneConfigurationName':'Default Configuration'}]}},
@@ -41,20 +42,20 @@ app_info = {'CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)', 'CFBundleDispla
     'UIFileSharingEnabled':True,'LSSupportsOpeningDocumentsInPlace':True}
 app_info.update(runtime_info)
 (BASE/'App/History-Info.plist').write_bytes(plistlib.dumps(app_info))
-extension_info = {'CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)','CFBundleName':'PhoneHistoryCapture',
-    'CFBundleExecutable':'$(EXECUTABLE_NAME)','CFBundlePackageType':'XPC!', 'CFBundleVersion':BUILD,'CFBundleShortVersionString':'0.3',
+extension_info = {'CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)','CFBundleName':'PhoneHistoryCapture','CFBundleDisplayName':'Phone History Capture',
+    'CFBundleExecutable':'$(EXECUTABLE_NAME)','CFBundlePackageType':'XPC!', 'CFBundleVersion':BUILD,'CFBundleShortVersionString':VERSION,
     'NSExtension':{'NSExtensionPointIdentifier':'com.apple.networkextension.packet-tunnel','NSExtensionPrincipalClass':'PacketTunnelProvider'}}
 extension_info.update(runtime_info)
 (BASE/'Tunnel/Info.plist').write_bytes(plistlib.dumps(extension_info))
 (BASE/'Controls/History.entitlements').write_bytes(plistlib.dumps({'com.apple.security.application-groups':[GROUP]}))
-controls_info = dict(extension_info, CFBundleName='PhoneHistoryControls', NSExtension={
+controls_info = dict(extension_info, CFBundleName='PhoneHistoryControls', CFBundleDisplayName='Phone History Controls', NSExtension={
     'NSExtensionPointIdentifier':'com.apple.widgetkit-extension'})
 (BASE/'Controls/Info.plist').write_bytes(plistlib.dumps(controls_info))
 
-app_sources = ['Shared/BuildConfiguration.swift','Shared/NaturalMemory.swift','Shared/ContextText.swift','Shared/MemoryRecord.swift','App/HistoryApp.swift','App/HistoryController.swift','App/HistoryListController.swift',
+app_sources = ['Shared/MemoryPrompts.swift','Shared/BuildConfiguration.swift','Shared/NaturalMemory.swift','Shared/ContextText.swift','Shared/MemoryRecord.swift','App/HistoryApp.swift','App/HistoryController.swift','App/HistoryListController.swift',
     'App/HistorySettingsController.swift','App/HistoryUI.swift','App/HistoryAboutController.swift','App/DesktopAccessController.swift','Shared/HistoryPaths.swift','Shared/HistoryReader.swift',
     'Shared/DesktopAccess.swift','Shared/StoragePolicy.swift','Shared/HistoryOffload.swift','Tunnel/DesktopExportServer.swift','Shared/CaptureControlState.swift','Shared/SetCaptureIntent.swift']
-ext_sources = ['Shared/BuildConfiguration.swift','Shared/NaturalMemory.swift','Shared/ContextText.swift','Shared/MemoryUsage.m','Shared/MemoryRecord.swift','Shared/MemoryEngine.swift','Tunnel/FrameObservation.swift','Tunnel/PacketTunnelProvider.swift','Tunnel/TunnelConnection.swift','Shared/HistoryPaths.swift',
+ext_sources = ['Shared/MemoryPrompts.swift','Shared/BuildConfiguration.swift','Shared/NaturalMemory.swift','Shared/ContextText.swift','Shared/MemoryUsage.m','Shared/MemoryRecord.swift','Shared/MemoryEngine.swift','Tunnel/FrameObservation.swift','Tunnel/PacketTunnelProvider.swift','Tunnel/TunnelConnection.swift','Shared/HistoryPaths.swift',
     'Shared/HistoryReader.swift','Shared/DesktopAccess.swift','Shared/StoragePolicy.swift','Shared/HistoryOffload.swift','Tunnel/DesktopExportServer.swift','Shared/CaptureControlState.swift']
 controls_sources = ['Shared/BuildConfiguration.swift','Controls/HistoryControls.swift','Shared/HistoryPaths.swift','Shared/CaptureControlState.swift','Shared/SetCaptureIntent.swift']
 source_refs = {}
@@ -75,7 +76,7 @@ common = {'IPHONEOS_DEPLOYMENT_TARGET':'26.5','SDKROOT':'iphoneos','SWIFT_VERSIO
     'DEVELOPMENT_TEAM':TEAM,'CODE_SIGN_STYLE':'Automatic','TARGETED_DEVICE_FAMILY':'1',
     'SWIFT_OBJC_BRIDGING_HEADER':'App/Bridge.h','CLANG_ENABLE_MODULES':'YES','CLANG_ENABLE_OBJC_ARC':'YES',
     'ENABLE_USER_SCRIPT_SANDBOXING':'YES','SWIFT_OPTIMIZATION_LEVEL':'-O', 'STRIP_INSTALLED_PRODUCT':'YES',
-    'DEAD_CODE_STRIPPING':'YES','GENERATE_INFOPLIST_FILE':'NO',
+    'DEBUG_INFORMATION_FORMAT':'dwarf-with-dsym','DEAD_CODE_STRIPPING':'YES','GENERATE_INFOPLIST_FILE':'NO',
     'LIBRARY_SEARCH_PATHS':'$(inherited) $(SRCROOT)/Core/target/aarch64-apple-ios/release',
     'LD_RUNPATH_SEARCH_PATHS':'$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks'}
 configs = {}

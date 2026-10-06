@@ -12,6 +12,6 @@ Desktop access requires explicit phone approval and public-key fingerprint compa
 
 Screenshots need a separate permission per approved desktop. A screenshot call returns one current image and does not save it in phone history. The desktop agent may retain the returned image. Ordinary memory questions should not trigger screenshots or repeated capture.
 
-AI memories contain broad activity inferences. `evidenceChecked` establishes that supporting quotes occur in recorded text, not that every inferred claim is correct. `activityInferred` labels generated activity prose. OCR, process labels, displayed claims and model output all require judgment.
+AI memories select specific subjects and details from saved text. New subjects and details must be literal phrases from the same cited excerpt; activity wording is supplied by the app. `evidenceChecked` establishes that supporting quotes occur in recorded text, not that the owner actually read it or the displayed claim is true. `activityInferred` marks a model-selected activity memory. If selection fails, exact excerpts are quoted with `activityInferred: false`. OCR, process labels and model topic selection still require judgment.
 
 Developer pairing records, history, phone identifiers, signing profiles and desktop private keys are excluded from this source repository. Never submit them in issues or pull requests.

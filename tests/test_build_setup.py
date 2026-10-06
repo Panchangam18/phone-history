@@ -34,6 +34,8 @@ class BuildSetupTests(unittest.TestCase):
                 self.assertEqual(info['PhoneHistoryProvider'],config['bundle_id']+'.capture')
                 self.assertEqual(info['PhoneHistoryControlKind'],config['control_kind'])
                 self.assertEqual(info['CFBundleVersion'],'12')
+                self.assertTrue(info['CFBundleDisplayName'])
+                self.assertEqual(info['CFBundleShortVersionString'],'1.0')
             project = (folder/'PhoneHistory.xcodeproj/project.pbxproj').read_text()
             self.assertIn('org.example.fixture.capture',project)
             self.assertIn('org.example.fixture.controls',project)

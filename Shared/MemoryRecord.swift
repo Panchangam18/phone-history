@@ -25,7 +25,7 @@ struct MemoryRecord: Codable, Sendable {
         evidenceChecked && ["10min","6h"].contains(scope) && id.hasPrefix("m-") && id.utf8.count<=64 && start.isFinite && end.isFinite && end>=start &&
         !title.isEmpty && title.utf8.count<=160 && !summary.isEmpty && summary.utf8.count<=1000 && facts.count<=4 &&
         facts.allSatisfy{$0.utf8.count<=240} && !sources.isEmpty && sources.count<=40 && sources.allSatisfy{!$0.isEmpty && $0.utf8.count<=80} &&
-        apps.count<=24 && apps.allSatisfy{$0.utf8.count<=80} && generatedAt.isFinite && model == "apple-system-language-model"
+        apps.count<=24 && apps.allSatisfy{$0.utf8.count<=80} && generatedAt.isFinite && ["apple-system-language-model","deterministic-evidence"].contains(model)
     }
     func rowData() throws -> Data {
         guard valid else { throw DesktopAccess.AccessError.invalidRequest }

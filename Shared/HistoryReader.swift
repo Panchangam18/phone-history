@@ -49,7 +49,7 @@ enum HistoryReader {
                 guard let row = (try? JSONSerialization.jsonObject(with: Data(line))) as? [String:Any] else { skipped += 1; continue }
                 if row["kind"] as? String == "memory" {
                     guard let memory=MemoryRecord.decode(row) else {skipped+=1;continue}
-                    if kind == "memories" && memory.format != 8 {continue}
+                    if kind == "memories" && (memory.format ?? 0) < 8 {continue}
                     if kind != "evidence",since == nil || memory.end>=since!.timeIntervalSince1970 {
                         entries.append(HistoryEntry(date:Date(timeIntervalSince1970:memory.end),label:memory.apps.joined(separator:", "),text:[memory.summary]+memory.facts,id:memory.id,source:"AI summary",memory:memory))
                     }

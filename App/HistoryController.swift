@@ -58,6 +58,21 @@ final class HistoryController: UIViewController {
         super.viewDidAppear(animated)
         if !started {
             started = true
+            #if targetEnvironment(simulator)
+            if CommandLine.arguments.contains("--ui-export") {
+                Task { @MainActor in
+                    try? await Task.sleep(for:.milliseconds(600))
+                    guard let window=self.view.window else {return}
+                    window.layoutIfNeeded()
+                    let image=UIGraphicsImageRenderer(bounds:window.bounds).image { _ in
+                        window.drawHierarchy(in:window.bounds,afterScreenUpdates:true)
+                    }
+                    if let data=image.pngData(),let folder=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask).first {
+                        try? data.write(to:folder.appendingPathComponent("store-preview.png"),options:.atomic)
+                    }
+                }
+            }
+            #endif
             if CommandLine.arguments.contains("--stop-history") { stopPressed() }
             else if CommandLine.arguments.contains("--start-history") { startPressed() }
             if CommandLine.arguments.contains("--summarize-history") {

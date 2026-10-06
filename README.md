@@ -13,7 +13,7 @@ Phone History saves bounded changes in visible text, groups them into ten-minute
 1. The embedded packet-tunnel worker connects to the phone's developer services using its own imported pairing record. After bootstrap, capture runs on the phone without a Mac, cloud relay or separate VPN app.
 2. Temporary screen frames are processed by native Vision OCR every 10–30 seconds, with generic accessibility metadata and text fallback. Frames are discarded. There is no website-specific or app-specific parser.
 3. Repeated text is deduplicated and changes are bounded to about 2 KiB per observation. Clock-only and routine interface text are filtered.
-4. When the Apple system model is available, it drafts and reviews activity summaries with supporting quotes and evidence IDs. Sparse or rejected prose falls back to a short content description.
+4. When the Apple system model is available, it selects specific subjects and details from numbered evidence excerpts in one bounded pass. Each subject and detail must occur in the same cited excerpt. Fixed activity wording avoids turning a quoted author's actions into the phone owner's actions. Rejected selections fall back to explicitly quoted content.
 5. The same local store supplies the app and authenticated desktop reads. Desktop access is optional.
 
 History is sampled and partial. It is **not** a tap/keystroke log or a complete accessibility tree. An inferred “You browsed…” memory describes likely activity from the sequence, not verified input events. Displayed text, OCR and generated summaries can be wrong. A page title does not prove watching, sending, buying or playing. Protected content and brief screens may be missed.
@@ -35,7 +35,7 @@ open PhoneHistory.xcodeproj
 
 Build the `PhoneHistory` scheme for your registered iPhone. The app and both extensions must share the configured App Group and have their required capabilities provisioned. Enable Developer Mode and trust your own Mac. Xcode generates signing profiles; none are bundled here.
 
-Configuration can also come from `PHONE_HISTORY_TEAM`, `PHONE_HISTORY_BUNDLE_ID`, `PHONE_HISTORY_GROUP`, `PHONE_HISTORY_CONTROL_KIND` and `PHONE_HISTORY_BUILD`. The generated Xcode project, entitlements and Info plists are ignored. Unsigned source checks can use `CODE_SIGNING_ALLOWED=NO`; neutral defaults cannot provision a real device. Keep identifiers stable when updating an existing installation so its container and approvals remain accessible.
+Configuration can also come from `PHONE_HISTORY_TEAM`, `PHONE_HISTORY_BUNDLE_ID`, `PHONE_HISTORY_GROUP`, `PHONE_HISTORY_CONTROL_KIND`, `PHONE_HISTORY_BUILD` and `PHONE_HISTORY_VERSION`. The generated Xcode project, entitlements and Info plists are ignored. Unsigned source checks can use `CODE_SIGNING_ALLOWED=NO`; neutral defaults cannot provision a real device. Keep identifiers stable when updating an existing installation so its container and approvals remain accessible.
 
 ### One-time developer trust import
 

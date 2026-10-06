@@ -175,6 +175,65 @@ class DesktopExportTests(unittest.TestCase):
         self.assertFalse(check("Instagram showed The Winter Arc Mindset.",quotes)["accepted"])
         self.assertFalse(check("The page discussed a trip to Antarctica.",["trip to Antarctica"])["accepted"])
 
+    def test_summary_retains_distinctive_subject_and_rejects_category_only_prose(self):
+        content=["Mira Lane • @miralane. 2h", "Introducing Lumen Pocket, a local model computer", "Lumen Pocket has 64 GB memory and offline model support"]
+        def check(summary,quotes):
+            self.worker.stdin.write(json.dumps({"draft":{"title":"Lumen Pocket discussion","summary":summary,"quotes":quotes},"content":content})+"\n")
+            self.worker.stdin.flush();return json.loads(self.worker.stdout.readline())
+        quotes=[content[2]]
+        self.assertTrue(check("You browsed the Lumen Pocket announcement and its 64 GB memory and offline model discussion.",quotes)["accepted"])
+        self.assertFalse(check("You browsed a few posts on social media.",quotes)["accepted"])
+        self.assertFalse(check("You reviewed technology news and hardware developments.",quotes)["accepted"])
+        self.assertFalse(check("You browsed Mira Lane's posts.",[content[0]])["accepted"])
+        self.assertFalse(check("You reviewed Lumen Pocket with 128 GB memory.",quotes)["accepted"])
+
+    def test_prompt_ignores_generic_author_rows_and_marked_ads(self):
+        content=["Mira Lane • @miralane. 2h", "Lumen Pocket supports local models on 64 GB memory", "Acme Store • @acme. 1h", "Ad", "Buy an Acme subscription today for 50 dollars", "Noah Reed • @noah. 1h", "Offline models keep the prompt on your own device"]
+        self.worker.stdin.write(json.dumps({"draft":{"title":"Local models","summary":"You reviewed Lumen Pocket and local models.","quotes":[content[1]]},"content":content})+"\n")
+        self.worker.stdin.flush();value=json.loads(self.worker.stdout.readline())
+        self.assertIn("Lumen Pocket",value["prompt"])
+        self.assertIn("Offline models",value["prompt"])
+        self.assertNotIn("Acme subscription",value["prompt"])
+        self.assertNotIn("Acme Store",value["prompt"])
+        self.assertIn("Context label (not a supporting quote)",value["prompt"])
+
+    def topics(self,content,topics):
+        self.worker.stdin.write(json.dumps({"topics":topics,"content":content,"label":"Fixture"})+"\n")
+        self.worker.stdin.flush();return json.loads(self.worker.stdout.readline())
+
+    def test_subjects_are_bound_to_one_excerpt_and_cannot_be_owner_actions(self):
+        content=["Introducing Lumen Pocket, a computer for offline models", "Lumen Pocket has 64 GB memory"]
+        good=self.topics(content,[{"subject":"Lumen Pocket","detail":"64 GB memory","excerpts":[1]}])
+        self.assertTrue(good["accepted"])
+        self.assertIn("64 GB memory",good["summary"])
+        self.assertNotIn("128 GB",self.topics(content,[{"subject":"Lumen Pocket","detail":"128 GB memory","excerpts":[1]}])["summary"])
+        self.assertFalse(self.topics(content,[{"subject":"AI","excerpts":[1]}])["accepted"])
+        self.assertFalse(self.topics(["Brush strokes painted every frame"],[{"subject":"strokes","excerpts":[1]}])["accepted"])
+        self.assertFalse(self.topics(content,[{"subject":"You met Lumen Pocket","excerpts":[1]}])["accepted"])
+        self.assertFalse(self.topics(content,[{"subject":"Lumen Pocket","excerpts":[999]}])["accepted"])
+        self.assertFalse(self.topics(content,[{"subject":"Lumen Pocket","excerpts":[1,999]}])["accepted"])
+        self.assertFalse(self.topics(content,[{"subject":"Invented Device","excerpts":[1]}])["accepted"])
+        self.assertTrue(all(len(q.encode())<=240 for q in good["quotes"]))
+
+    def test_wrapped_headlines_keep_continuation_and_marked_ads_stay_out(self):
+        result=self.topics(["Introducing Lumen Pocket, a personal AI", "Computer", "Lumen Pocket has 64 GB memory"],
+                           [{"subject":"Lumen Pocket, a personal AI Computer","detail":"64 GB memory","excerpts":[1]}])
+        self.assertTrue(result["accepted"])
+        self.assertIn("AI Computer",result["summary"])
+
+    def test_correction_does_not_repeat_uncorrected_numeric_claim(self):
+        content=["Lumen Pocket has 128 GB memory", "Mira Lane • @mira. 1h", "Correction: the earlier memory size was a typo"]
+        self.assertFalse(self.topics(content,[{"subject":"128 GB memory","excerpts":[1]}])["accepted"])
+
+    def test_new_memory_format_replaces_old_window_and_keeps_original_by_id(self):
+        old=self.memory_fixture();old["id"]="m-old-specificity"
+        new=self.memory_fixture();new["id"]="m-new-specificity";new["format"]=10;new["generatedAt"]=self.now+1
+        new["summary"]="You reviewed the Lumen Pocket launch and its offline model support."
+        self.append_rows([old,new])
+        self.assertEqual([row["id"] for row in self.opened(operation="memories")["entries"]],[new["id"]])
+        proof=self.opened(operation="evidence",ids=[old["id"],new["id"]])
+        self.assertEqual(proof["missing_ids"],[])
+
     def test_sparse_topic_fallback_omits_fragments_and_duplicate_quotes(self):
         content=["nrpcJnn2112cJhpr •","and for girls","chriswillx • The Winter Arc Mindset"]
         self.worker.stdin.write(json.dumps({"draft":{"title":"Topic","summary":"The user watched a video.","quotes":[content[2],content[1],content[2]]},"content":content})+"\n")
