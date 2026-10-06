@@ -154,7 +154,9 @@ final class HistoryController: UIViewController {
         let refresh=UIRefreshControl();refresh.addTarget(self,action:#selector(pullRefresh(_:)),for:.valueChanged);scroll.refreshControl=refresh
         stack.translatesAutoresizingMaskIntoConstraints=false;scroll.addSubview(stack)
         NSLayoutConstraint.activate([
-            scroll.topAnchor.constraint(equalTo:view.safeAreaLayoutGuide.topAnchor),scroll.bottomAnchor.constraint(equalTo:view.bottomAnchor),
+            // Keep the frame fixed while the navigation title collapses. UIKit
+            // adjusts the content inset rather than moving the scroll view.
+            scroll.topAnchor.constraint(equalTo:view.topAnchor),scroll.bottomAnchor.constraint(equalTo:view.bottomAnchor),
             scroll.leadingAnchor.constraint(equalTo:view.leadingAnchor),scroll.trailingAnchor.constraint(equalTo:view.trailingAnchor),
             stack.topAnchor.constraint(equalTo:scroll.contentLayoutGuide.topAnchor,constant:20),stack.bottomAnchor.constraint(equalTo:scroll.contentLayoutGuide.bottomAnchor,constant:-40),
             stack.leadingAnchor.constraint(equalTo:scroll.contentLayoutGuide.leadingAnchor,constant:20),stack.trailingAnchor.constraint(equalTo:scroll.contentLayoutGuide.trailingAnchor,constant:-20),

@@ -16,12 +16,12 @@ final class HistoryListController: UITableViewController {
         navigationItem.rightBarButtonItem=UIBarButtonItem(barButtonSystemItem:.close,target:self,action:#selector(close))
         refreshControl=UIRefreshControl();refreshControl?.addTarget(self,action:#selector(reload),for:.valueChanged)
         mode.selectedSegmentIndex=0;mode.addTarget(self,action:#selector(reload),for:.valueChanged)
-        let header=UIView(frame:CGRect(x:0,y:0,width:view.bounds.width,height:70));header.addSubview(mode)
+        let header=UIView(frame:CGRect(x:0,y:0,width:view.bounds.width,height:94));header.addSubview(mode)
         mode.translatesAutoresizingMaskIntoConstraints=false
         NSLayoutConstraint.activate([
             mode.leadingAnchor.constraint(equalTo:header.leadingAnchor,constant:20),
             mode.trailingAnchor.constraint(equalTo:header.trailingAnchor,constant:-20),
-            mode.topAnchor.constraint(equalTo:header.topAnchor,constant:20),
+            mode.topAnchor.constraint(equalTo:header.topAnchor,constant:44),
             mode.bottomAnchor.constraint(equalTo:header.bottomAnchor,constant:-16)])
         tableView.tableHeaderView=header
         loadHistory()
