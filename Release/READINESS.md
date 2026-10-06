@@ -1,6 +1,6 @@
 # App Store preparation
 
-Status checked 2026-10-05: build 69 archived and installed successfully; its background worker generated model-authored prose on the phone. Upload succeeded after replacing the summary generator with directly model-authored prose. Builds 65, 66 and 68 are processed and show Missing Compliance. Build 69 processing is not yet confirmed. Build 64 remains attached to version 1.0 in App Store Connect, with Missing Compliance. Version 1.0 remains Prepare for Submission. Not submitted or approved.
+Status checked 2026-10-06: build 69 archived, installed, uploaded and processed successfully. It is now saved as the build attached to version 1.0, replacing build 64, and shows Missing Compliance. An Add for Review attempt was rejected with two required items: Content Rights Information and export compliance information. Version 1.0 remains Prepare for Submission. Not submitted or approved. The background worker generated model-authored prose on the development phone; this is not production-signed verification.
 
 ## Prepared
 
@@ -29,10 +29,10 @@ The reviewer needs working first-time setup on their own device. An imported tru
 
 ## Remaining submission fields and checks
 
-- Attach the latest processed build and resolve Missing Compliance. Test the production-signed build through internal TestFlight; development installation alone does not establish production capture behavior.
+- Build 69 is attached. Resolve Missing Compliance, then test the production-signed build through internal TestFlight; development installation alone does not establish production capture behavior.
 - Current iOS compatibility, recipient setup, reboot/reconnect behavior and longer energy checks.
 - Account holder's content-rights declaration; any accessibility claims must reflect actual verification.
-- EU trader status and regional requirements where applicable; do not invent a legal status or trade address. Selecting worldwide storefronts does not satisfy these requirements.
+- EU trader status and regional requirements where applicable; the account still requires a trader/non-trader declaration. A missing declaration or lack of trader registration does not establish non-trader status. Do not invent a legal status or trade address. Selecting worldwide storefronts does not satisfy these requirements.
 - Encryption export classification. The app uses both Apple CryptoKit and third-party TLS/cryptographic implementations; do not automatically claim encryption is limited to Apple's OS. Selecting standard additional encryption and France availability in Apple's questionnaire explicitly requires documentation upload and approval. No compliance exemption is set in Info.plist without a supported determination.
 - Final submission only when the app can be fully exercised by reviewers and its declarations are accurate.
 
@@ -42,5 +42,6 @@ Sources checked 2026-10-05:
 
 - [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/), sections 2.1, 2.2, 2.5.1, 2.5.4, 2.5.14 and 5.4.
 - [TestFlight overview](https://developer.apple.com/help/app-store-connect/test-a-beta-version/testflight-overview/).
-- [Encryption export documentation](https://developer.apple.com/help/app-store-connect/reference/export-compliance-documentation-for-encryption/).
+- [Encryption export documentation](https://developer.apple.com/help/app-store-connect/reference/app-information/export-compliance-documentation-for-encryption/) (rechecked 2026-10-06).
+- [EU trader requirements](https://developer.apple.com/help/app-store-connect/manage-compliance-information/manage-european-union-digital-services-act-trader-requirements/) (checked 2026-10-06).
 - [Review timing and expedited requests](https://developer.apple.com/help/app-review/after-submitting-for-review/request-expedited-review/).
