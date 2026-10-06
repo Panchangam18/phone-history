@@ -12,6 +12,7 @@ final class HistorySettingsController: UITableViewController {
     var didChange:(()->Void)?
     override func viewDidLoad() {
         super.viewDidLoad();title="Settings";tableView.rowHeight=UITableView.automaticDimension;tableView.estimatedRowHeight=80
+        HistoryUI.compactHeading("Settings",on:navigationItem)
         navigationItem.rightBarButtonItem=UIBarButtonItem(barButtonSystemItem:.done,target:self,action:#selector(close))
         refreshControl=UIRefreshControl();refreshControl?.addTarget(self,action:#selector(refresh),for:.valueChanged)
         refresh()

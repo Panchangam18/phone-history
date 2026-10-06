@@ -12,20 +12,7 @@ final class HistoryListController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad();title="History"
-        navigationItem.largeTitleDisplayMode = .never
-        navigationItem.titleView=UIView()
-        let heading=HistoryUI.label("History",style:.title2,weight:.bold)
-        heading.font=UIFontMetrics(forTextStyle:.title2).scaledFont(for:.systemFont(ofSize:22,weight:.bold),maximumPointSize:28)
-        heading.accessibilityTraits = .header
-        let titleContainer=UIView();heading.translatesAutoresizingMaskIntoConstraints=false;titleContainer.addSubview(heading)
-        NSLayoutConstraint.activate([
-            heading.leadingAnchor.constraint(equalTo:titleContainer.leadingAnchor),
-            heading.trailingAnchor.constraint(equalTo:titleContainer.trailingAnchor),
-            heading.topAnchor.constraint(equalTo:titleContainer.topAnchor),
-            heading.bottomAnchor.constraint(equalTo:titleContainer.bottomAnchor)])
-        let titleItem=UIBarButtonItem(customView:titleContainer)
-        if #available(iOS 26.0, *) { titleItem.hidesSharedBackground=true }
-        navigationItem.leftBarButtonItem=titleItem
+        HistoryUI.compactHeading("History",on:navigationItem)
         tableView.backgroundColor = .systemGroupedBackground;tableView.rowHeight=UITableView.automaticDimension;tableView.estimatedRowHeight=140
         navigationItem.rightBarButtonItem=UIBarButtonItem(barButtonSystemItem:.done,target:self,action:#selector(close))
         refreshControl=UIRefreshControl();refreshControl?.addTarget(self,action:#selector(reload),for:.valueChanged)

@@ -44,6 +44,22 @@ enum HistoryUI {
         row.isAccessibilityElement=true;row.accessibilityLabel=title;row.accessibilityValue=subtitle;row.accessibilityTraits = .button
         return row
     }
+    static func compactHeading(_ title:String, on item:UINavigationItem) {
+        item.largeTitleDisplayMode = .never
+        item.titleView=UIView()
+        let heading=label(title,style:.title2,weight:.bold)
+        heading.font=UIFontMetrics(forTextStyle:.title2).scaledFont(for:.systemFont(ofSize:22,weight:.bold),maximumPointSize:28)
+        heading.accessibilityTraits = .header
+        let titleContainer=UIView();heading.translatesAutoresizingMaskIntoConstraints=false;titleContainer.addSubview(heading)
+        NSLayoutConstraint.activate([
+            heading.leadingAnchor.constraint(equalTo:titleContainer.leadingAnchor),
+            heading.trailingAnchor.constraint(equalTo:titleContainer.trailingAnchor),
+            heading.topAnchor.constraint(equalTo:titleContainer.topAnchor),
+            heading.bottomAnchor.constraint(equalTo:titleContainer.bottomAnchor)])
+        let titleItem=UIBarButtonItem(customView:titleContainer)
+        if #available(iOS 26.0, *) { titleItem.hidesSharedBackground=true }
+        item.leftBarButtonItem=titleItem
+    }
     static func sheet(_ controller:UIViewController) -> UINavigationController {
         let nav=UINavigationController(rootViewController:controller)
         nav.navigationBar.prefersLargeTitles=true;nav.view.tintColor=accent
