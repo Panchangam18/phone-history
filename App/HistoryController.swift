@@ -29,6 +29,8 @@ final class HistoryController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        title="Phone history"
+        navigationItem.largeTitleDisplayMode = .always
         view.backgroundColor = .systemGroupedBackground
         view.tintColor = HistoryUI.accent
         buildInterface()

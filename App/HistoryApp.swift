@@ -31,7 +31,10 @@ final class HistorySceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let scene = scene as? UIWindowScene else { return }
         let window = UIWindow(windowScene:scene)
         window.frame = scene.effectiveGeometry.coordinateSpace.bounds
-        window.rootViewController = HistoryController()
+        let home=UINavigationController(rootViewController:HistoryController())
+        home.navigationBar.prefersLargeTitles=true
+        home.view.tintColor=HistoryUI.accent
+        window.rootViewController=home
         self.window = window
         window.makeKeyAndVisible()
     }
