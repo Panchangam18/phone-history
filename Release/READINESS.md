@@ -4,6 +4,8 @@ Status checked 2026-10-06: build 69 archived, installed, uploaded and processed 
 
 ## Prepared
 
+- Development build 84 removes repetitive Settings headers, subtitles and footers while keeping the first storage row at its previous top position. History adds space around its segmented control and entries, both sheets use native X close buttons, and Home storage captions use the same subheadline typography as other secondary text. Simulator inspection verified all three screens and Settings dismissal; the build compiled, installed and launched on the development iPhone. Build 69 remains the App Store Connect candidate; build 84 has not been uploaded or verified through TestFlight.
+
 - Development build 82 reduces the shared icon-to-label gap from 15 to 8 points on Home and the History and Settings sheet headings. Simulator appearance was checked; the build compiled, installed and launched on the development iPhone. Build 69 remains the App Store Connect candidate; build 82 has not been uploaded or verified through TestFlight.
 
 - Development build 81 uses the selected standard Settings row on Home, moves Desktop connection into Settings, and puts History and See all inside the history card. Home and sheet headings share the same native headline typography and accent-colored 28-point symbol styling; sheet headings have no additional leading inset. The build compiled, installed, and launched on the development iPhone. Simulator checks verified appearance, navigation, and connection-row availability in both sliding-window and no-removal modes. Connector instructions now point to Settings → Desktop connection. Build 69 remains the App Store Connect candidate; build 81 has not been uploaded or verified through TestFlight.

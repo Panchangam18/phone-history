@@ -12,7 +12,7 @@ final class HistoryController: UIViewController {
     private let captureSwitch = UISwitch()
     private let captureProgress = UIActivityIndicatorView(style:.medium)
     private let retentionValue = HistoryUI.label("512 KB",style:.body,weight:.medium)
-    private let retentionCaption = HistoryUI.label("Storage budget",style:.caption1,color:.secondaryLabel)
+    private let retentionCaption = HistoryUI.label("Storage budget",style:.subheadline,color:.secondaryLabel)
     private var localBytes:Int64?
     private let savedSize = HistoryUI.label("—",style:.body,weight:.medium)
     private let previewStack = UIStackView()
@@ -115,7 +115,7 @@ final class HistoryController: UIViewController {
         status.font = .preferredFont(forTextStyle:.footnote);status.adjustsFontForContentSizeCategory=true;status.textColor = .secondaryLabel;status.numberOfLines=0
         status.isHidden=true
         let metrics=HistoryUI.stack([
-            HistoryUI.stack([savedSize,HistoryUI.label("Stored here",style:.caption1,color:.secondaryLabel)],spacing:3),
+            HistoryUI.stack([savedSize,HistoryUI.label("Stored here",style:.subheadline,color:.secondaryLabel)],spacing:3),
             HistoryUI.stack([retentionValue,retentionCaption],spacing:3)
         ],spacing:20,axis:.horizontal);metrics.distribution = .fillEqually
         let configureStorageLayout = { [weak metrics] (category:UIContentSizeCategory) in

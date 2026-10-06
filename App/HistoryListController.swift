@@ -13,16 +13,16 @@ final class HistoryListController: UITableViewController {
         super.viewDidLoad();title="History"
         HistoryUI.sheetHeading("History",symbol:"clock.arrow.circlepath",on:navigationItem)
         tableView.backgroundColor = .systemGroupedBackground;tableView.rowHeight=UITableView.automaticDimension;tableView.estimatedRowHeight=140
-        navigationItem.rightBarButtonItem=UIBarButtonItem(barButtonSystemItem:.done,target:self,action:#selector(close))
+        navigationItem.rightBarButtonItem=UIBarButtonItem(barButtonSystemItem:.close,target:self,action:#selector(close))
         refreshControl=UIRefreshControl();refreshControl?.addTarget(self,action:#selector(reload),for:.valueChanged)
         mode.selectedSegmentIndex=0;mode.addTarget(self,action:#selector(reload),for:.valueChanged)
-        let header=UIView(frame:CGRect(x:0,y:0,width:view.bounds.width,height:54));header.addSubview(mode)
+        let header=UIView(frame:CGRect(x:0,y:0,width:view.bounds.width,height:70));header.addSubview(mode)
         mode.translatesAutoresizingMaskIntoConstraints=false
         NSLayoutConstraint.activate([
             mode.leadingAnchor.constraint(equalTo:header.leadingAnchor,constant:20),
             mode.trailingAnchor.constraint(equalTo:header.trailingAnchor,constant:-20),
-            mode.topAnchor.constraint(equalTo:header.topAnchor,constant:8),
-            mode.bottomAnchor.constraint(equalTo:header.bottomAnchor,constant:-12)])
+            mode.topAnchor.constraint(equalTo:header.topAnchor,constant:20),
+            mode.bottomAnchor.constraint(equalTo:header.bottomAnchor,constant:-16)])
         tableView.tableHeaderView=header
         loadHistory()
     }
@@ -88,7 +88,7 @@ final class HistoryListController: UITableViewController {
         content.textProperties.font = .preferredFont(forTextStyle:.subheadline);content.textProperties.color=HistoryUI.accent
         content.secondaryText=entry.memory == nil ? (["\(ContextText.usefulLabel(entry.label) ? entry.label+" · " : "")\(timeFormatter.string(from:entry.date))"]+ContextText.content(entry.text)).joined(separator:"\n"):"\(timeFormatter.string(from:Date(timeIntervalSince1970:entry.memory!.start)))–\(timeFormatter.string(from:Date(timeIntervalSince1970:entry.memory!.end)))\n"+entry.memory!.summary;content.secondaryTextProperties.font = .preferredFont(forTextStyle:.body)
         content.secondaryTextProperties.color = .label;content.secondaryTextProperties.numberOfLines=0
-        content.textToSecondaryTextVerticalPadding=10;content.directionalLayoutMargins = .init(top:18,leading:18,bottom:18,trailing:18)
+        content.textToSecondaryTextVerticalPadding=12;content.directionalLayoutMargins = .init(top:24,leading:20,bottom:24,trailing:20)
         cell.contentConfiguration=content;cell.selectionStyle=entry.memory == nil ? .none:.default;cell.accessoryType=entry.memory == nil ? .none:.disclosureIndicator;return cell
     }
 }

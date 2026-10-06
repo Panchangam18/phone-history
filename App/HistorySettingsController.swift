@@ -15,7 +15,7 @@ final class HistorySettingsController: UITableViewController {
         super.viewDidLoad();title="Settings";tableView.rowHeight=UITableView.automaticDimension;tableView.estimatedRowHeight=80
         HistoryUI.sheetHeading("Settings",symbol:"gearshape",on:navigationItem)
         tableView.tableHeaderView=UIView(frame:CGRect(x:0,y:0,width:1,height:8))
-        navigationItem.rightBarButtonItem=UIBarButtonItem(barButtonSystemItem:.done,target:self,action:#selector(close))
+        navigationItem.rightBarButtonItem=UIBarButtonItem(barButtonSystemItem:.close,target:self,action:#selector(close))
         refreshControl=UIRefreshControl();refreshControl?.addTarget(self,action:#selector(refresh),for:.valueChanged)
         refresh()
     }
@@ -51,22 +51,22 @@ final class HistorySettingsController: UITableViewController {
     override func tableView(_ tableView:UITableView,heightForHeaderInSection section:Int) -> CGFloat {
         section == 0 ? 32:UITableView.automaticDimension
     }
+    override func tableView(_ tableView:UITableView,viewForHeaderInSection section:Int) -> UIView? {
+        section == 0 ? UIView():nil
+    }
     override func numberOfSections(in tableView:UITableView) -> Int { sections.count }
     override func tableView(_ tableView:UITableView,numberOfRowsInSection section:Int) -> Int {
         switch logicalSection(section) { case 0,4:return 1;case 1:return receiver == nil ? 2:3;case 2:return policy.mode == .window ? 1:0;default:return 3 }
     }
     override func tableView(_ tableView:UITableView,titleForHeaderInSection section:Int) -> String? {
-        switch logicalSection(section) { case 0:return "On this phone";case 1:return "Data removal";case 2:return policy.mode == .window ? "Sliding window":nil;case 4:return nil;default:return "Manage history" }
+        switch logicalSection(section) { case 0,2,4:return nil;case 1:return "Data removal";default:return "History" }
     }
     override func tableView(_ tableView:UITableView,titleForFooterInSection section:Int) -> String? {
         switch logicalSection(section) {
-        case 0:return "Saved text only. Capture has a separate 4 MB daily writing limit."
         case 1:
-            if policy.mode == .send && receiver?.id != policy.receiverID { return "The selected receiver is offline. History stays on this phone until it reconnects. No copy is removed without confirmation that it was saved." }
-            return receiver == nil ? "Start the receiver on an approved desktop to enable sending. Pull to refresh." : "All saved history can be sent, encrypted. Phone copies are removed only after the selected desktop confirms saving them. While offline, history stays here."
-        case 2:return policy.mode == .window ? "Oldest complete segments are removed as the budget fills. The active segment stays readable. Applies to existing history too.":nil
-        case 4:return nil
-        default:return "Erasing local history keeps your desktop approvals and setup. Copies already exported are unaffected."
+            guard policy.mode == .send else { return nil }
+            return receiver?.id == policy.receiverID ? "Removed here after your desktop saves a copy.":"Desktop offline. History stays here."
+        default:return nil
         }
     }
     override func tableView(_ tableView:UITableView,cellForRowAt indexPath:IndexPath) -> UITableViewCell {
@@ -75,8 +75,8 @@ final class HistorySettingsController: UITableViewController {
         switch section {
         case 0:title="Saved history";detail=ByteCountFormatter.string(fromByteCount:usedBytes,countStyle:.file);cell.selectionStyle = .none
         case 1:
-            if indexPath.row == 0 { title="No removal";detail="Keep history until you erase it.";cell.accessoryType=policy.mode == .none ? .checkmark:.none }
-            else if indexPath.row == 1 { title="Sliding window";detail="Keep recent history. Default budget: 512 KB.";cell.accessoryType=policy.mode == .window ? .checkmark:.none }
+            if indexPath.row == 0 { title="No removal";cell.accessoryType=policy.mode == .none ? .checkmark:.none }
+            else if indexPath.row == 1 { title="Sliding window";cell.accessoryType=policy.mode == .window ? .checkmark:.none }
             else { title="Send to connected device";detail=receiver?.name ?? "";cell.accessoryType=policy.mode == .send && policy.receiverID == receiver?.id ? .checkmark:.none }
         case 2:title="Storage budget";detail=ByteCountFormatter.string(fromByteCount:Int64(policy.maxBytes),countStyle:.binary);cell.accessoryType = .disclosureIndicator
         case 4:
@@ -87,7 +87,7 @@ final class HistorySettingsController: UITableViewController {
             cell.imageView?.image=UIImage(systemName:["square.and.arrow.up","info.circle","trash"][indexPath.row]);cell.imageView?.tintColor=indexPath.row == 2 ? .systemRed:HistoryUI.accent
             cell.accessoryType=indexPath.row == 1 ? .disclosureIndicator:.none
         }
-        var content=cell.defaultContentConfiguration();content.text=title;content.secondaryText=detail
+        var content=cell.defaultContentConfiguration();content.text=title;content.secondaryText=detail.isEmpty ? nil:detail
         content.textProperties.font = .preferredFont(forTextStyle:.body);content.textProperties.color=section == 3 && indexPath.row == 2 ? .systemRed:.label
         content.secondaryTextProperties.numberOfLines=0;content.secondaryTextProperties.font = .preferredFont(forTextStyle:.subheadline)
         cell.contentConfiguration=content
