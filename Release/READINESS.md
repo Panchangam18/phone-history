@@ -10,7 +10,7 @@ Status checked 2026-10-05: build 64 uploaded, processed and attached to version 
 - Listing description, review notes, support/privacy URLs and the account holder's private review contact saved in App Store Connect. Contact details are intentionally absent from this repository.
 - Data Not Collected privacy answers published with the account holder's explicit approval. Age rating overridden to 18+ for this private activity recorder.
 - Native UI screenshot with synthetic data uploaded; no personal history included.
-- Free pricing saved. Apple Silicon Mac and Vision Pro availability disabled because this capture implementation targets iPhone. Release countries remain pending the account holder's choice.
+- Free pricing saved. Apple Silicon Mac and Vision Pro availability disabled because this capture implementation targets iPhone. Worldwide availability saved for all 175 storefronts on release; regional compliance remains pending.
 - All 42 desktop-export and setup tests passed. Specific-subject memory selection uses exact phrases from numbered evidence, with deterministic activity wording and one model pass per window. This does not eliminate OCR errors or prove actions.
 
 ## Eligibility questions that packaging cannot resolve
@@ -28,8 +28,8 @@ The reviewer needs working first-time setup on their own device. An imported tru
 - Resolve build 64's Missing Compliance status. Test the production-signed build through internal TestFlight; development installation alone does not establish production capture behavior.
 - Current iOS compatibility, recipient setup, reboot/reconnect behavior and longer energy checks.
 - Account holder's content-rights declaration; any accessibility claims must reflect actual verification.
-- Country availability and EU trader status where required; do not invent a legal status or trade address.
-- Encryption export classification. The app uses both Apple CryptoKit and third-party TLS/cryptographic implementations; do not automatically claim encryption is limited to Apple's OS. French documentation may depend on France availability. No compliance exemption is set in Info.plist without a supported determination.
+- EU trader status and regional requirements where applicable; do not invent a legal status or trade address. Selecting worldwide storefronts does not satisfy these requirements.
+- Encryption export classification. The app uses both Apple CryptoKit and third-party TLS/cryptographic implementations; do not automatically claim encryption is limited to Apple's OS. Selecting standard additional encryption and France availability in Apple's questionnaire explicitly requires documentation upload and approval. No compliance exemption is set in Info.plist without a supported determination.
 - Final submission only when the app can be fully exercised by reviewers and its declarations are accurate.
 
 A target release date is not guaranteed. Do not claim upload, processing, submission, approval or distribution until the relevant state is verified.
