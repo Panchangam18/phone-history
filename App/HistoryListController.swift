@@ -19,7 +19,7 @@ final class HistoryListController: UITableViewController {
         heading.accessibilityTraits = .header
         let titleContainer=UIView();heading.translatesAutoresizingMaskIntoConstraints=false;titleContainer.addSubview(heading)
         NSLayoutConstraint.activate([
-            heading.leadingAnchor.constraint(equalTo:titleContainer.leadingAnchor,constant:20),
+            heading.leadingAnchor.constraint(equalTo:titleContainer.leadingAnchor),
             heading.trailingAnchor.constraint(equalTo:titleContainer.trailingAnchor),
             heading.topAnchor.constraint(equalTo:titleContainer.topAnchor),
             heading.bottomAnchor.constraint(equalTo:titleContainer.bottomAnchor)])
