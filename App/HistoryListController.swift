@@ -5,14 +5,13 @@ final class HistoryListController: UITableViewController {
     private var days:[(date:Date,entries:[HistoryEntry])] = []
     private let timeFormatter:DateFormatter = { let f=DateFormatter();f.timeStyle = .short;return f }()
     private let dayFormatter:DateFormatter = { let f=DateFormatter();f.dateFormat="EEEE, MMM d";return f }()
-    private var skippedRows = 0
     private var loading=false
     private let mode=UISegmentedControl(items:["Memories","Evidence"])
     private var message="Collecting observations. Memories appear after a completed ten-minute window."
 
     override func viewDidLoad() {
         super.viewDidLoad();title="History"
-        HistoryUI.compactHeading("History",on:navigationItem)
+        HistoryUI.sheetHeading("History",on:navigationItem)
         tableView.backgroundColor = .systemGroupedBackground;tableView.rowHeight=UITableView.automaticDimension;tableView.estimatedRowHeight=140
         navigationItem.rightBarButtonItem=UIBarButtonItem(barButtonSystemItem:.done,target:self,action:#selector(close))
         refreshControl=UIRefreshControl();refreshControl?.addTarget(self,action:#selector(reload),for:.valueChanged)
@@ -62,7 +61,7 @@ final class HistoryListController: UITableViewController {
     }
     private func apply(_ result:HistoryReadResult) {
         let grouped=Dictionary(grouping:result.entries) { Calendar.current.startOfDay(for:$0.date) }
-        days=grouped.keys.sorted(by:>).map { (date:$0,entries:grouped[$0] ?? []) };skippedRows=result.skippedRows
+        days=grouped.keys.sorted(by:>).map { (date:$0,entries:grouped[$0] ?? []) }
         if days.isEmpty { showMessage(mode.selectedSegmentIndex == 0 ? "Memories are taking shape":"Nothing saved yet",detail:mode.selectedSegmentIndex == 0 ? message:"Start capture and use your apps normally.") }
         else { contentUnavailableConfiguration=nil }
         tableView.reloadData()
@@ -72,14 +71,14 @@ final class HistoryListController: UITableViewController {
         configuration.text=title;configuration.secondaryText=detail;contentUnavailableConfiguration=configuration
     }
     override func numberOfSections(in tableView:UITableView) -> Int { days.count }
+    override func tableView(_ tableView:UITableView,heightForHeaderInSection section:Int) -> CGFloat {
+        section == 0 ? 32:UITableView.automaticDimension
+    }
     override func tableView(_ tableView:UITableView,titleForHeaderInSection section:Int) -> String? {
         let day=days[section].date
         if Calendar.current.isDateInToday(day) { return "Today" }
         if Calendar.current.isDateInYesterday(day) { return "Yesterday" }
         return dayFormatter.string(from:day)
-    }
-    override func tableView(_ tableView:UITableView,titleForFooterInSection section:Int) -> String? {
-        section == days.count-1 ? "Newest 300 items · Memories infer activity from captured screens; tap to inspect Evidence. Removal follows your Settings.\(skippedRows > 0 ? " Some unsupported records were skipped." : "")" : nil
     }
     override func tableView(_ tableView:UITableView,numberOfRowsInSection section:Int) -> Int { days[section].entries.count }
     override func tableView(_ tableView:UITableView,cellForRowAt indexPath:IndexPath) -> UITableViewCell {

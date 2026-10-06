@@ -91,11 +91,10 @@ final class HistoryController: UIViewController {
         }
     }
     private func buildInterface() {
-        let brand=HistoryUI.label("Phone History",style:.title2,weight:.bold)
         let more=UIButton(type:.system);var moreConfig=UIButton.Configuration.glass();moreConfig.image=UIImage(systemName:"gearshape");moreConfig.cornerStyle = .capsule;more.configuration=moreConfig
         more.widthAnchor.constraint(equalToConstant:44).isActive=true;more.heightAnchor.constraint(equalToConstant:44).isActive=true
         more.accessibilityLabel="Settings";more.addTarget(self,action:#selector(settingsPressed),for:.touchUpInside)
-        let heading=HistoryUI.stack([brand,UIView(),more],spacing:12,axis:.horizontal);heading.alignment = .center
+        let heading=HistoryUI.stack([UIView(),more],spacing:12,axis:.horizontal);heading.alignment = .center
         heading.isLayoutMarginsRelativeArrangement=true
         heading.directionalLayoutMargins=NSDirectionalEdgeInsets(top:0,leading:20,bottom:0,trailing:20)
         let stateLabels=HistoryUI.stack([stateTitle,stateSubtitle],spacing:4)

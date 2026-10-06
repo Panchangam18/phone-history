@@ -44,19 +44,20 @@ enum HistoryUI {
         row.isAccessibilityElement=true;row.accessibilityLabel=title;row.accessibilityValue=subtitle;row.accessibilityTraits = .button
         return row
     }
-    static func compactHeading(_ title:String, on item:UINavigationItem) {
+    static func sheetHeading(_ title:String, on item:UINavigationItem) {
+        item.title=title
         item.largeTitleDisplayMode = .never
         item.titleView=UIView()
-        let heading=label(title,style:.title2,weight:.bold)
-        heading.font=UIFontMetrics(forTextStyle:.title2).scaledFont(for:.systemFont(ofSize:22,weight:.bold),maximumPointSize:28)
+        let heading=label(title,style:.largeTitle,weight:.bold)
+        heading.font=UIFontMetrics(forTextStyle:.largeTitle).scaledFont(for:.systemFont(ofSize:34,weight:.bold),maximumPointSize:40)
         heading.accessibilityTraits = .header
-        let titleContainer=UIView();heading.translatesAutoresizingMaskIntoConstraints=false;titleContainer.addSubview(heading)
+        let container=UIView();heading.translatesAutoresizingMaskIntoConstraints=false;container.addSubview(heading)
         NSLayoutConstraint.activate([
-            heading.leadingAnchor.constraint(equalTo:titleContainer.leadingAnchor),
-            heading.trailingAnchor.constraint(equalTo:titleContainer.trailingAnchor),
-            heading.topAnchor.constraint(equalTo:titleContainer.topAnchor),
-            heading.bottomAnchor.constraint(equalTo:titleContainer.bottomAnchor)])
-        let titleItem=UIBarButtonItem(customView:titleContainer)
+            heading.leadingAnchor.constraint(equalTo:container.leadingAnchor,constant:8),
+            heading.trailingAnchor.constraint(equalTo:container.trailingAnchor),
+            heading.topAnchor.constraint(equalTo:container.topAnchor),
+            heading.bottomAnchor.constraint(equalTo:container.bottomAnchor)])
+        let titleItem=UIBarButtonItem(customView:container)
         if #available(iOS 26.0, *) { titleItem.hidesSharedBackground=true }
         item.leftBarButtonItem=titleItem
     }

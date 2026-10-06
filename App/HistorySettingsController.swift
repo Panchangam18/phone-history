@@ -12,7 +12,8 @@ final class HistorySettingsController: UITableViewController {
     var didChange:(()->Void)?
     override func viewDidLoad() {
         super.viewDidLoad();title="Settings";tableView.rowHeight=UITableView.automaticDimension;tableView.estimatedRowHeight=80
-        HistoryUI.compactHeading("Settings",on:navigationItem)
+        HistoryUI.sheetHeading("Settings",on:navigationItem)
+        tableView.tableHeaderView=UIView(frame:CGRect(x:0,y:0,width:1,height:8))
         navigationItem.rightBarButtonItem=UIBarButtonItem(barButtonSystemItem:.done,target:self,action:#selector(close))
         refreshControl=UIRefreshControl();refreshControl?.addTarget(self,action:#selector(refresh),for:.valueChanged)
         refresh()
@@ -44,6 +45,9 @@ final class HistorySettingsController: UITableViewController {
     }
     }
     private func logicalSection(_ section:Int) -> Int { policy.mode != .window && section == 2 ? 3:section }
+    override func tableView(_ tableView:UITableView,heightForHeaderInSection section:Int) -> CGFloat {
+        section == 0 ? 32:UITableView.automaticDimension
+    }
     override func numberOfSections(in tableView:UITableView) -> Int { policy.mode == .window ? 4:3 }
     override func tableView(_ tableView:UITableView,numberOfRowsInSection section:Int) -> Int {
         switch logicalSection(section) { case 0:return 1;case 1:return receiver == nil ? 2:3;case 2:return policy.mode == .window ? 1:0;default:return 3 }
