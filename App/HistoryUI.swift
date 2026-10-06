@@ -2,6 +2,7 @@ import UIKit
 
 @MainActor
 enum HistoryUI {
+    static let sectionIconSpacing:CGFloat = 8
     static let accent = UIColor { traits in
         traits.userInterfaceStyle == .dark ? UIColor(red:0.63,green:0.70,blue:1,alpha:1) : UIColor(red:0.29,green:0.38,blue:0.78,alpha:1)
     }
@@ -47,7 +48,7 @@ enum HistoryUI {
         let chevron=UIImageView(image:UIImage(systemName:"chevron.right"));chevron.tintColor = .tertiaryLabel
         chevron.preferredSymbolConfiguration = .init(pointSize:12,weight:.semibold)
         chevron.widthAnchor.constraint(equalToConstant:9).isActive=true
-        let content=stack([icon,labels,chevron],spacing:15,axis:.horizontal);content.alignment = .center;content.isUserInteractionEnabled=false
+        let content=stack([icon,labels,chevron],spacing:sectionIconSpacing,axis:.horizontal);content.alignment = .center;content.isUserInteractionEnabled=false
         inset(content,into:row,amount:20);row.addTarget(target,action:action,for:.touchUpInside)
         row.isAccessibilityElement=true;row.accessibilityLabel=title;row.accessibilityValue=subtitle;row.accessibilityTraits = .button
         return row
@@ -59,7 +60,7 @@ enum HistoryUI {
         let text=label(title,style:.headline)
         text.accessibilityTraits = .header
         let icon=sectionIcon(symbol)
-        let heading=stack([icon,text],spacing:15,axis:.horizontal);heading.alignment = .center
+        let heading=stack([icon,text],spacing:sectionIconSpacing,axis:.horizontal);heading.alignment = .center
         let container=UIView();heading.translatesAutoresizingMaskIntoConstraints=false;container.addSubview(heading)
         NSLayoutConstraint.activate([
             heading.leadingAnchor.constraint(equalTo:container.leadingAnchor),

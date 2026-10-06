@@ -137,7 +137,7 @@ final class HistoryController: UIViewController {
         captureCard.widthAnchor.constraint(equalTo:captureSection.widthAnchor).isActive=true
         let recent=HistoryUI.label("History",style:.headline);recent.accessibilityTraits = .header
         let historyIcon=HistoryUI.sectionIcon("clock.arrow.circlepath")
-        let historyHeading=HistoryUI.stack([historyIcon,recent],spacing:15,axis:.horizontal);historyHeading.alignment = .center
+        let historyHeading=HistoryUI.stack([historyIcon,recent],spacing:HistoryUI.sectionIconSpacing,axis:.horizontal);historyHeading.alignment = .center
         let all=UIButton(type:.system);all.setTitle("See all",for:.normal);all.addTarget(self,action:#selector(recentPressed),for:.touchUpInside)
         all.titleLabel?.font = .preferredFont(forTextStyle:.subheadline);all.heightAnchor.constraint(greaterThanOrEqualToConstant:44).isActive=true
         let recentHeading=HistoryUI.stack([historyHeading,UIView(),all],axis:.horizontal);recentHeading.alignment = .center
