@@ -16,7 +16,6 @@ final class HistoryController: UIViewController {
     private var localBytes:Int64?
     private let savedSize = HistoryUI.label("—",style:.body,weight:.medium)
     private let previewStack = UIStackView()
-    private let agentSubtitle = HistoryUI.label("Connect a desktop",style:.subheadline,color:.secondaryLabel)
     private var previewTask: Task<Void,Never>?
     private var refreshTask: Task<Void,Never>?
     private var connectionTask: Task<Void,Never>?
@@ -91,8 +90,19 @@ final class HistoryController: UIViewController {
         }
     }
     private func buildInterface() {
-        let more=UIButton(type:.system);var moreConfig=UIButton.Configuration.plain();moreConfig.image=UIImage(systemName:"gearshape");moreConfig.preferredSymbolConfigurationForImage = .init(pointSize:20,weight:.regular);moreConfig.baseForegroundColor = .secondaryLabel;more.configuration=moreConfig
-        more.widthAnchor.constraint(equalToConstant:44).isActive=true;more.heightAnchor.constraint(equalToConstant:44).isActive=true
+        var settingsPlacement="row"
+        #if targetEnvironment(simulator)
+        if CommandLine.arguments.contains("--ui-settings-footer") { settingsPlacement="footer" }
+        #endif
+        let more=UIButton(type:.system);var moreConfig=UIButton.Configuration.plain();moreConfig.title="Settings"
+        moreConfig.image=UIImage(systemName:"gearshape")
+        moreConfig.imagePlacement = .leading
+        moreConfig.imagePadding=8;moreConfig.preferredSymbolConfigurationForImage = .init(pointSize:14,weight:.regular)
+        moreConfig.contentInsets = .zero
+        moreConfig.baseForegroundColor = .secondaryLabel
+        moreConfig.titleTextAttributesTransformer=UIConfigurationTextAttributesTransformer { incoming in var result=incoming;result.font = .preferredFont(forTextStyle:.subheadline);return result }
+        more.configuration=moreConfig;more.heightAnchor.constraint(greaterThanOrEqualToConstant:44).isActive=true
+        more.contentHorizontalAlignment = .center
         more.accessibilityLabel="Settings";more.addTarget(self,action:#selector(settingsPressed),for:.touchUpInside)
         let stateLabels=HistoryUI.stack([stateTitle,stateSubtitle],spacing:4)
         captureSwitch.onTintColor=HistoryUI.accent
@@ -108,18 +118,16 @@ final class HistoryController: UIViewController {
             HistoryUI.stack([savedSize,HistoryUI.label("Stored here",style:.caption1,color:.secondaryLabel)],spacing:3),
             HistoryUI.stack([retentionValue,retentionCaption],spacing:3)
         ],spacing:20,axis:.horizontal);metrics.distribution = .fillEqually
-        let storageRow=HistoryUI.stack([metrics,more],spacing:12,axis:.horizontal);storageRow.alignment = .center
-        let configureStorageLayout = { [weak metrics,weak storageRow] (category:UIContentSizeCategory) in
+        let configureStorageLayout = { [weak metrics] (category:UIContentSizeCategory) in
             let expanded=category.isAccessibilityCategory
             metrics?.axis=expanded ? .vertical:.horizontal
             metrics?.distribution=expanded ? .fill:.fillEqually
-            storageRow?.alignment=expanded ? .top:.center
         }
         configureStorageLayout(traitCollection.preferredContentSizeCategory)
         registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (view:HistoryController, _:UITraitCollection) in
             configureStorageLayout(view.traitCollection.preferredContentSizeCategory)
         }
-        let content=HistoryUI.stack([stateRow,HistoryUI.separator(),storageRow],spacing:20)
+        let content=HistoryUI.stack([stateRow,HistoryUI.separator(),metrics],spacing:20)
         let captureCard=HistoryUI.card(content);captureCard.layer.cornerRadius=20
         let captureSection=HistoryUI.stack([captureCard,status],spacing:10)
         status.translatesAutoresizingMaskIntoConstraints=false
@@ -127,17 +135,19 @@ final class HistoryController: UIViewController {
         status.trailingAnchor.constraint(equalTo:captureCard.trailingAnchor,constant:-12).isActive=true
         captureSection.alignment = .center
         captureCard.widthAnchor.constraint(equalTo:captureSection.widthAnchor).isActive=true
-        let recent=HistoryUI.label("Recent history",style:.headline)
+        let recent=HistoryUI.label("History",style:.headline);recent.accessibilityTraits = .header
+        let historyIcon=HistoryUI.sectionIcon("clock.arrow.circlepath")
+        let historyHeading=HistoryUI.stack([historyIcon,recent],spacing:15,axis:.horizontal);historyHeading.alignment = .center
         let all=UIButton(type:.system);all.setTitle("See all",for:.normal);all.addTarget(self,action:#selector(recentPressed),for:.touchUpInside)
         all.titleLabel?.font = .preferredFont(forTextStyle:.subheadline);all.heightAnchor.constraint(greaterThanOrEqualToConstant:44).isActive=true
-        let recentHeading=HistoryUI.stack([recent,UIView(),all],axis:.horizontal);recentHeading.alignment = .center
+        let recentHeading=HistoryUI.stack([historyHeading,UIView(),all],axis:.horizontal);recentHeading.alignment = .center
         recentHeading.isLayoutMarginsRelativeArrangement=true
-        recentHeading.directionalLayoutMargins=NSDirectionalEdgeInsets(top:0,leading:20,bottom:0,trailing:20)
+        recentHeading.directionalLayoutMargins=NSDirectionalEdgeInsets(top:8,leading:20,bottom:8,trailing:20)
         previewStack.axis = .vertical;previewStack.spacing=0
-        let previewCard=HistoryUI.card(previewStack,inset:0)
-        let recentSection=HistoryUI.stack([recentHeading,previewCard],spacing:2)
-        let agents=HistoryUI.menuRow(title:"Desktop connection",subtitle:"Connect a desktop",symbol:"laptopcomputer",target:self,action:#selector(agentsPressed),subtitleView:agentSubtitle)
-        let stack=HistoryUI.stack([captureSection,recentSection,agents],spacing:24)
+        let recentSection=HistoryUI.card(HistoryUI.stack([recentHeading,HistoryUI.separator(),previewStack],spacing:0),inset:0)
+        let settingsRow=HistoryUI.menuRow(title:"Settings",subtitle:"",symbol:"gearshape",target:self,action:#selector(settingsPressed))
+        let bottomSettings:UIView=settingsPlacement == "row" ? settingsRow:more
+        let stack=HistoryUI.stack([captureSection,recentSection,bottomSettings],spacing:24)
         let scroll=UIScrollView();scroll.translatesAutoresizingMaskIntoConstraints=false;view.addSubview(scroll);scroll.alwaysBounceVertical=true
         let refresh=UIRefreshControl();refresh.addTarget(self,action:#selector(pullRefresh(_:)),for:.valueChanged);scroll.refreshControl=refresh
         stack.translatesAutoresizingMaskIntoConstraints=false;scroll.addSubview(stack)
@@ -198,12 +208,10 @@ final class HistoryController: UIViewController {
                     let bytes=files.reduce(Int64(0)) { $0 + Int64((try? $1.resourceValues(forKeys:[.fileSizeKey]).fileSize) ?? 0) }
                     var entries=try HistoryReader.readNewest(files,limit:3,kind:"memories").entries
                     if entries.isEmpty {entries=try HistoryReader.readNewest(files,limit:3,kind:"evidence").entries}
-                    let pairs=(try? DesktopAccess.load(folder).pairs.count) ?? 0
-                    return (entries.sorted { $0.date > $1.date },bytes,pairs)
+                    return (entries.sorted { $0.date > $1.date },bytes)
                 }.value
                 guard !Task.isCancelled else { return }
                 localBytes=result.1;savedSize.text=ByteCountFormatter.string(fromByteCount:result.1,countStyle:.file)
-                agentSubtitle.text=result.2 == 0 ? "Connect a desktop" : "\(result.2) approved \(result.2 == 1 ? "desktop":"desktops")"
                 entries=result.0
             } catch { showPreview([],error:true);return }
             guard !Task.isCancelled else { return };showPreview(entries)
@@ -468,7 +476,6 @@ final class HistoryController: UIViewController {
         let state=CommandLine.arguments.contains("--ui-stale") ? "No recent capture update" : (paused ? "Paused" : "Capturing")
         updatePresentation(state:state,enabled:!paused,bytes:48320)
         showStatus(CommandLine.arguments.contains("--ui-stale") ? "Turn capture off and on to retry." : nil)
-        agentSubtitle.text="1 approved desktop"
         showPreview([
             HistoryEntry(date:Date(),label:"Safari",text:["A quieter way to keep track", "Notes on making useful things."]),
             HistoryEntry(date:Date().addingTimeInterval(-300),label:"Notes",text:["Weekend plans", "Book the train and find a place for lunch."]),

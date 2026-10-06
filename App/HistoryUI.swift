@@ -30,12 +30,20 @@ enum HistoryUI {
         let line=UIView();line.backgroundColor = .separator
         line.heightAnchor.constraint(equalToConstant:1/UIScreen.main.scale).isActive=true;return line
     }
+    static func sectionIcon(_ symbol:String) -> UIImageView {
+        let icon=UIImageView(image:UIImage(systemName:symbol))
+        icon.tintColor=accent;icon.contentMode = .scaleAspectFit
+        NSLayoutConstraint.activate([icon.widthAnchor.constraint(equalToConstant:28),icon.heightAnchor.constraint(equalToConstant:28)])
+        return icon
+    }
     static func menuRow(title:String, subtitle:String, symbol:String, target:Any, action:Selector, subtitleView:UILabel? = nil) -> UIControl {
         let row=UIControl();row.backgroundColor = .secondarySystemGroupedBackground
         row.layer.cornerRadius=24;row.layer.cornerCurve = .continuous
-        let icon=UIImageView(image:UIImage(systemName:symbol));icon.tintColor=accent;icon.contentMode = .scaleAspectFit
-        NSLayoutConstraint.activate([icon.widthAnchor.constraint(equalToConstant:28),icon.heightAnchor.constraint(equalToConstant:28)])
-        let labels=stack([label(title,style:.headline),subtitleView ?? label(subtitle,style:.subheadline,color:.secondaryLabel)],spacing:3)
+        let icon=sectionIcon(symbol)
+        var labelViews:[UIView]=[label(title,style:.headline)]
+        if let subtitleView { labelViews.append(subtitleView) }
+        else if !subtitle.isEmpty { labelViews.append(label(subtitle,style:.subheadline,color:.secondaryLabel)) }
+        let labels=stack(labelViews,spacing:3)
         let chevron=UIImageView(image:UIImage(systemName:"chevron.right"));chevron.tintColor = .tertiaryLabel
         chevron.preferredSymbolConfiguration = .init(pointSize:12,weight:.semibold)
         chevron.widthAnchor.constraint(equalToConstant:9).isActive=true
@@ -44,16 +52,17 @@ enum HistoryUI {
         row.isAccessibilityElement=true;row.accessibilityLabel=title;row.accessibilityValue=subtitle;row.accessibilityTraits = .button
         return row
     }
-    static func sheetHeading(_ title:String, on item:UINavigationItem) {
+    static func sheetHeading(_ title:String, symbol:String, on item:UINavigationItem) {
         item.title=title
         item.largeTitleDisplayMode = .never
         item.titleView=UIView()
-        let heading=label(title,style:.largeTitle,weight:.bold)
-        heading.font=UIFontMetrics(forTextStyle:.largeTitle).scaledFont(for:.systemFont(ofSize:34,weight:.bold),maximumPointSize:40)
-        heading.accessibilityTraits = .header
+        let text=label(title,style:.headline)
+        text.accessibilityTraits = .header
+        let icon=sectionIcon(symbol)
+        let heading=stack([icon,text],spacing:15,axis:.horizontal);heading.alignment = .center
         let container=UIView();heading.translatesAutoresizingMaskIntoConstraints=false;container.addSubview(heading)
         NSLayoutConstraint.activate([
-            heading.leadingAnchor.constraint(equalTo:container.leadingAnchor,constant:8),
+            heading.leadingAnchor.constraint(equalTo:container.leadingAnchor),
             heading.trailingAnchor.constraint(equalTo:container.trailingAnchor),
             heading.topAnchor.constraint(equalTo:container.topAnchor),
             heading.bottomAnchor.constraint(equalTo:container.bottomAnchor)])

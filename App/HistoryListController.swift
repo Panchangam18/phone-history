@@ -11,7 +11,7 @@ final class HistoryListController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad();title="History"
-        HistoryUI.sheetHeading("History",on:navigationItem)
+        HistoryUI.sheetHeading("History",symbol:"clock.arrow.circlepath",on:navigationItem)
         tableView.backgroundColor = .systemGroupedBackground;tableView.rowHeight=UITableView.automaticDimension;tableView.estimatedRowHeight=140
         navigationItem.rightBarButtonItem=UIBarButtonItem(barButtonSystemItem:.done,target:self,action:#selector(close))
         refreshControl=UIRefreshControl();refreshControl?.addTarget(self,action:#selector(reload),for:.valueChanged)

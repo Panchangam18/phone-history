@@ -11,6 +11,7 @@ final class DesktopAccessController: UITableViewController, UIDocumentPickerDele
     private var reviewedLaunchRequest = false
     override func viewDidLoad() {
         super.viewDidLoad(); title = "Desktop connection"
+        navigationItem.largeTitleDisplayMode = .never
         tableView.backgroundColor = .systemGroupedBackground;tableView.rowHeight=UITableView.automaticDimension;tableView.estimatedRowHeight=72;view.tintColor=HistoryUI.accent
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem:.done,target:self,action:#selector(close))
         let label = UILabel(); label.numberOfLines = 0; label.font = .preferredFont(forTextStyle:.subheadline); label.textColor = .secondaryLabel

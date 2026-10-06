@@ -12,7 +12,7 @@ python3 -m venv .venv
 .venv/bin/python phone_history_agent.py pair-request --name "My desktop"
 ```
 
-The connector creates a private desktop key at `~/.phone-history/desktop.json` with owner-only permissions. Its request JSON contains a public key. Send the request to the phone via AirDrop or Files, then import it in Phone History → Desktop agents. Compare the fingerprint displayed by both devices before approving. Share the phone's connection JSON back to this desktop, then import it:
+The connector creates a private desktop key at `~/.phone-history/desktop.json` with owner-only permissions. Its request JSON contains a public key. Send the request to the phone via AirDrop or Files, then import it in Phone History → Settings → Desktop connection. Compare the fingerprint displayed by both devices before approving. Share the phone's connection JSON back to this desktop, then import it:
 
 ```sh
 .venv/bin/python phone_history_agent.py pair /path/to/phone-history-connection.json
@@ -22,7 +22,7 @@ The connector creates a private desktop key at `~/.phone-history/desktop.json` w
 
 An approval can read retained data saved before approval, within the seven-day query range. Screenshot permission is separate and off by default. Revoke a desktop in the phone app to block future requests; this does not delete copies already exported. Protect the private desktop state file: copying it grants the same access.
 
-If the phone's local IPv4 address changes, supply `--host LOCAL_IP` or import an updated connection file. The current address appears in Desktop agents on the phone. Public addresses, loopback and DNS names are rejected. Automatic discovery and off-network access are not implemented.
+If the phone's local IPv4 address changes, supply `--host LOCAL_IP` or import an updated connection file. The current address appears in Settings → Desktop connection on the phone. Public addresses, loopback and DNS names are rejected. Automatic discovery and off-network access are not implemented.
 
 ## Skill
 
