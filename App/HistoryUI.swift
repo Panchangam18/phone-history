@@ -5,7 +5,7 @@ enum HistoryUI {
     static let sectionIconSpacing:CGFloat = 8
     static let sheetRowInsets=NSDirectionalEdgeInsets(top:20,leading:16,bottom:20,trailing:16)
     static let accent = UIColor { traits in
-        traits.userInterfaceStyle == .dark ? UIColor(red:0.63,green:0.70,blue:1,alpha:1) : UIColor(red:0.29,green:0.38,blue:0.78,alpha:1)
+        traits.userInterfaceStyle == .dark ? UIColor(red:0.55,green:0.72,blue:1,alpha:1) : UIColor(red:0.16,green:0.38,blue:0.72,alpha:1)
     }
     static func label(_ text:String? = nil, style:UIFont.TextStyle = .body, color:UIColor = .label, weight:UIFont.Weight? = nil) -> UILabel {
         let label=UILabel();label.text=text;label.textColor=color;label.numberOfLines=0;label.adjustsFontForContentSizeCategory=true
@@ -91,6 +91,6 @@ final class HistoryTintCard: UIView {
     required init?(coder:NSCoder) { fatalError("init(coder:) has not been implemented") }
     override func layoutSubviews() { super.layoutSubviews();CATransaction.begin();CATransaction.setDisableActions(true);gradient.frame=bounds;CATransaction.commit() }
     private func updateColors() {
-        gradient.colors=traitCollection.userInterfaceStyle == .dark ? [UIColor(red:0.13,green:0.18,blue:0.29,alpha:1).cgColor,UIColor(red:0.18,green:0.16,blue:0.29,alpha:1).cgColor] : [UIColor(red:0.88,green:0.95,blue:0.99,alpha:1).cgColor,UIColor(red:0.93,green:0.91,blue:0.99,alpha:1).cgColor]
+        gradient.colors=traitCollection.userInterfaceStyle == .dark ? [UIColor(red:0.07,green:0.15,blue:0.25,alpha:1).cgColor,UIColor(red:0.09,green:0.15,blue:0.29,alpha:1).cgColor] : [UIColor(red:0.89,green:0.95,blue:0.99,alpha:1).cgColor,UIColor(red:0.86,green:0.90,blue:1,alpha:1).cgColor]
     }
 }

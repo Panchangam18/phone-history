@@ -50,8 +50,8 @@ for (points,scale,size) in sizes {
     NSGraphicsContext.saveGraphicsState();NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep:bitmap)
     let transform=NSAffineTransform();transform.scale(by:CGFloat(size)/1024);transform.concat()
     let canvas=NSRect(x:0,y:0,width:1024,height:1024)
-    NSGradient(colorsAndLocations:(color(0.30,0.73,0.87),0),(color(0.32,0.46,0.87),0.48),(color(0.53,0.36,0.83),1))!.draw(in:canvas,angle:35)
-    NSGradient(starting:color(0.89,0.98,1,0.40),ending:color(0.89,0.98,1,0))!.draw(fromCenter:NSPoint(x:170,y:880),radius:0,toCenter:NSPoint(x:170,y:880),radius:850,options:[.drawsAfterEndingLocation])
+    NSGradient(colorsAndLocations:(color(0.851,0.949,1),0),(color(0.239,0.541,0.937),0.42),(color(0.027,0.122,0.451),1))!.draw(in:canvas,angle:35)
+    NSGradient(starting:color(0.89,0.98,1,0.22),ending:color(0.89,0.98,1,0))!.draw(fromCenter:NSPoint(x:170,y:880),radius:0,toCenter:NSPoint(x:170,y:880),radius:850,options:[.drawsAfterEndingLocation])
     glassGlyph()
     NSGraphicsContext.restoreGraphicsState()
     let filename="icon-\(points)-\(scale).png"
