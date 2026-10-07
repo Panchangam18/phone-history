@@ -31,6 +31,10 @@ final class HistoryController: UIViewController {
         super.viewDidLoad()
         title="Phone history"
         navigationItem.largeTitleDisplayMode = .always
+        let settings=UIBarButtonItem(image:UIImage(systemName:"gearshape"),style:.plain,target:self,action:#selector(settingsPressed))
+        settings.tintColor=HistoryUI.accent
+        settings.accessibilityLabel="Settings"
+        navigationItem.rightBarButtonItem=settings
         view.backgroundColor = .systemGroupedBackground
         view.tintColor = HistoryUI.accent
         buildInterface()
@@ -92,20 +96,6 @@ final class HistoryController: UIViewController {
         }
     }
     private func buildInterface() {
-        var settingsPlacement="row"
-        #if targetEnvironment(simulator)
-        if CommandLine.arguments.contains("--ui-settings-footer") { settingsPlacement="footer" }
-        #endif
-        let more=UIButton(type:.system);var moreConfig=UIButton.Configuration.plain();moreConfig.title="Settings"
-        moreConfig.image=UIImage(systemName:"gearshape")
-        moreConfig.imagePlacement = .leading
-        moreConfig.imagePadding=8;moreConfig.preferredSymbolConfigurationForImage = .init(pointSize:14,weight:.regular)
-        moreConfig.contentInsets = .zero
-        moreConfig.baseForegroundColor = .secondaryLabel
-        moreConfig.titleTextAttributesTransformer=UIConfigurationTextAttributesTransformer { incoming in var result=incoming;result.font = .preferredFont(forTextStyle:.subheadline);return result }
-        more.configuration=moreConfig;more.heightAnchor.constraint(greaterThanOrEqualToConstant:44).isActive=true
-        more.contentHorizontalAlignment = .center
-        more.accessibilityLabel="Settings";more.addTarget(self,action:#selector(settingsPressed),for:.touchUpInside)
         let stateLabels=HistoryUI.stack([stateTitle,stateSubtitle],spacing:4)
         captureSwitch.onTintColor=HistoryUI.accent
         captureSwitch.accessibilityLabel="Capture"
@@ -147,9 +137,7 @@ final class HistoryController: UIViewController {
         recentHeading.directionalLayoutMargins=NSDirectionalEdgeInsets(top:8,leading:20,bottom:8,trailing:20)
         previewStack.axis = .vertical;previewStack.spacing=0
         let recentSection=HistoryUI.card(HistoryUI.stack([recentHeading,HistoryUI.separator(),previewStack],spacing:0),inset:0)
-        let settingsRow=HistoryUI.menuRow(title:"Settings",subtitle:"",symbol:"gearshape",target:self,action:#selector(settingsPressed))
-        let bottomSettings:UIView=settingsPlacement == "row" ? settingsRow:more
-        let stack=HistoryUI.stack([captureSection,recentSection,bottomSettings],spacing:24)
+        let stack=HistoryUI.stack([captureSection,recentSection],spacing:24)
         let scroll=UIScrollView();scroll.translatesAutoresizingMaskIntoConstraints=false;view.addSubview(scroll);scroll.alwaysBounceVertical=true
         let refresh=UIRefreshControl();refresh.addTarget(self,action:#selector(pullRefresh(_:)),for:.valueChanged);scroll.refreshControl=refresh
         stack.translatesAutoresizingMaskIntoConstraints=false;scroll.addSubview(stack)

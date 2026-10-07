@@ -4,6 +4,8 @@ Status checked 2026-10-06: build 69 archived, installed, uploaded and processed 
 
 ## Prepared
 
+- Development build 90 moves Settings to a native accent-colored gear button at the top right of Home and removes the separate bottom Settings row and unused footer preview variation. Simulator inspection verified appearance and opening Settings; the build compiled, installed and launched on the development iPhone. Build 69 remains the App Store Connect candidate; build 90 has not been uploaded or verified through TestFlight.
+
 - Development build 89 simplifies Desktop connection to pairing instructions, the connection address, approved desktops and screenshot state. Detailed access disclosure stays in the approval dialog; revocation guidance stays beside approved desktops. The Settings subpage uses only native back navigation; the standalone pairing launch route retains an X close button. Simulator inspection verified the subpage and missing top-right button; the build compiled, installed and launched on the development iPhone. Build 69 remains the App Store Connect candidate; build 89 has not been uploaded or verified through TestFlight.
 
 - Development build 88 models sheet typography and spacing on the supplied Apple Account reference: shared 20-point semibold headers, 17-point body labels, 15-point secondary labels, 16-point outer/content side insets and 20-point row padding. Settings has a smaller initial gap; History uses matching margins and semibold entry titles. Simulator inspection verified Settings in light and dark appearance and History in dark appearance. The build compiled, installed and launched on the development iPhone. Build 69 remains the App Store Connect candidate; build 88 has not been uploaded or verified through TestFlight.
