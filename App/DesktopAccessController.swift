@@ -6,16 +6,20 @@ import CryptoKit
 @MainActor
 final class DesktopAccessController: UITableViewController, UIDocumentPickerDelegate {
     private var pairs: [DesktopPair] = []
-    private var endpoint = "Start capture to make desktop access available."
+    private var endpoint = "Join Wi-Fi and start capture to connect."
     private var loading=false
     private var reviewedLaunchRequest = false
     override func viewDidLoad() {
         super.viewDidLoad(); title = "Desktop connection"
         navigationItem.largeTitleDisplayMode = .never
         tableView.backgroundColor = .systemGroupedBackground;tableView.rowHeight=UITableView.automaticDimension;tableView.estimatedRowHeight=72;view.tintColor=HistoryUI.accent
-        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem:.done,target:self,action:#selector(close))
+        // The pairing launch route can also present this as a standalone sheet.
+        if navigationController?.viewControllers.first === self {
+            navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem:.close,target:self,action:#selector(close))
+        }
         let label = UILabel(); label.numberOfLines = 0; label.font = .preferredFont(forTextStyle:.subheadline); label.textColor = .secondaryLabel
-        label.text = "Give Codex or Claude access to your phone’s memory. Only desktops you approve can read history, over the same Wi-Fi.\n\nCreate a request with the desktop connector, import it here, then compare the fingerprint before approving."
+        label.text = "Create a pairing request with your desktop connector, then import it here. Use the same Wi-Fi."
+        label.adjustsFontForContentSizeCategory=true
         let header = UIView(); header.addSubview(label); label.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([label.topAnchor.constraint(equalTo:header.topAnchor,constant:16),label.bottomAnchor.constraint(equalTo:header.bottomAnchor,constant:-16),label.leadingAnchor.constraint(equalTo:header.leadingAnchor,constant:20),label.trailingAnchor.constraint(equalTo:header.trailingAnchor,constant:-20),label.widthAnchor.constraint(equalToConstant:max(250,view.bounds.width-40))])
         header.frame.size = header.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
@@ -40,22 +44,22 @@ final class DesktopAccessController: UITableViewController, UIDocumentPickerDele
                     return (try DesktopAccess.load(folder).pairs,DesktopExportServer.wifiAddresses())
                 }.value
                 pairs=value.0
-                if !value.1.isEmpty { endpoint="Same Wi-Fi · \(value.1.joined(separator:", ")):\(DesktopAccess.port)\nCapture must be running. Update the desktop’s host if your Wi-Fi address changes." }
+                endpoint=value.1.isEmpty ? "Join Wi-Fi and start capture to connect.":"Capture must be running.\n\(value.1.joined(separator:", ")):\(DesktopAccess.port)"
                 tableView.reloadData()
             } catch { showError(error) }
         }
     }
     override func numberOfSections(in tableView: UITableView) -> Int { 2 }
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { section == 0 ? 1 : pairs.count }
-    override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? { section == 0 ? "Connect a desktop" : "Approved desktops (\(pairs.count)/8)" }
-    override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? { section == 0 ? endpoint : "Approval grants read access to up to seven days of saved text. Approved desktops can also request a fresh, bounded AX text check (once per 30 seconds). Screenshots are off by default; enable them separately for a trusted desktop. No desktop can control your phone through this connector." }
+    override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? { section == 0 ? nil : "Approved desktops" }
+    override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? { section == 0 ? endpoint : (pairs.isEmpty ? "No desktops connected.":"Swipe left to revoke access.") }
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = UITableViewCell(style:.subtitle,reuseIdentifier:nil)
-        if indexPath.section == 0 { cell.textLabel?.text = "Import desktop pairing request"; cell.textLabel?.textColor = HistoryUI.accent;cell.imageView?.image=UIImage(systemName:"plus.circle.fill");cell.imageView?.tintColor=HistoryUI.accent }
+        if indexPath.section == 0 { cell.textLabel?.text = "Import pairing request"; cell.textLabel?.textColor = HistoryUI.accent;cell.imageView?.image=UIImage(systemName:"plus.circle.fill");cell.imageView?.tintColor=HistoryUI.accent }
         else {
-            let pair = pairs[indexPath.row]; cell.textLabel?.text = pair.name; cell.detailTextLabel?.text = pair.allowsScreenshots ? "Screenshots allowed · Tap to manage" : "Screenshots off · Tap to manage"; cell.accessoryType = .disclosureIndicator;cell.imageView?.image=UIImage(systemName:"laptopcomputer");cell.imageView?.tintColor=HistoryUI.accent
+            let pair = pairs[indexPath.row]; cell.textLabel?.text = pair.name; cell.detailTextLabel?.text = pair.allowsScreenshots ? "Screenshots allowed" : "Screenshots off"; cell.accessoryType = .disclosureIndicator;cell.imageView?.image=UIImage(systemName:"laptopcomputer");cell.imageView?.tintColor=HistoryUI.accent
         }
-        cell.detailTextLabel?.numberOfLines=0;cell.textLabel?.font = .preferredFont(forTextStyle:.body);cell.textLabel?.adjustsFontForContentSizeCategory=true;cell.detailTextLabel?.font = .preferredFont(forTextStyle:.caption1);cell.detailTextLabel?.adjustsFontForContentSizeCategory=true
+        cell.detailTextLabel?.numberOfLines=0;cell.textLabel?.font = .preferredFont(forTextStyle:.body);cell.textLabel?.adjustsFontForContentSizeCategory=true;cell.detailTextLabel?.font = .preferredFont(forTextStyle:.subheadline);cell.detailTextLabel?.adjustsFontForContentSizeCategory=true
         return cell
     }
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -98,7 +102,7 @@ final class DesktopAccessController: UITableViewController, UIDocumentPickerDele
         } catch { showErrorMessage("This is not a valid desktop pairing request.") }
     }
     private func manage(_ pair:DesktopPair,source:UIView?) {
-        let sheet=UIAlertController(title:pair.name,message:"Saved text and fresh AX checks are allowed. Screenshots can reveal everything visible, including private content. They are requested on demand, at most once per 30 seconds, and never saved to phone history.",preferredStyle:.actionSheet)
+        let sheet=UIAlertController(title:pair.name,message:"This desktop can read history and current screen text. Screenshots may include private content; they’re on demand and aren’t saved to history.",preferredStyle:.actionSheet)
         sheet.addAction(UIAlertAction(title:pair.allowsScreenshots ? "Turn off screenshots" : "Allow screenshots",style:.default) { [weak self] _ in
             guard let self else { return }
             Task {

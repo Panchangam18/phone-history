@@ -11,7 +11,7 @@ TEAM = option('team')
 BUNDLE = option('bundle_id','com.example.phonehistory')
 GROUP = option('group','group.'+BUNDLE)
 CONTROL_KIND = option('control_kind',BUNDLE+'.capture-toggle')
-BUILD = option('build','88')
+BUILD = option('build','89')
 VERSION = option('version','1.0')
 for name,value in [('bundle_id',BUNDLE),('group',GROUP),('control_kind',CONTROL_KIND)]:
     if not re.fullmatch(r'[A-Za-z0-9.-]+',value): raise ValueError('Invalid '+name)
