@@ -11,12 +11,20 @@ final class HistorySettingsController: UITableViewController {
     var exportHistory:(()->Void)?
     var eraseHistory:(()->Void)?
     var didChange:(()->Void)?
+    var setupGuide:(()->Void)?
+    var storageOnly=false
     override func viewDidLoad() {
         super.viewDidLoad();title="Settings";tableView.rowHeight=UITableView.automaticDimension;tableView.estimatedRowHeight=80
-        HistoryUI.sheetHeading("Settings",symbol:"gearshape",on:navigationItem)
+        if navigationController?.viewControllers.first === self {
+            HistoryUI.sheetHeading("Settings",symbol:"gearshape",on:navigationItem)
+        } else {
+            title="Storage";navigationItem.largeTitleDisplayMode = .never
+        }
         tableView.directionalLayoutMargins = .init(top:0,leading:16,bottom:0,trailing:16)
         tableView.tableHeaderView=UIView(frame:CGRect(x:0,y:0,width:1,height:4))
-        navigationItem.rightBarButtonItem=UIBarButtonItem(barButtonSystemItem:.close,target:self,action:#selector(close))
+        if navigationController?.viewControllers.first === self {
+            navigationItem.rightBarButtonItem=UIBarButtonItem(barButtonSystemItem:.close,target:self,action:#selector(close))
+        }
         refreshControl=UIRefreshControl();refreshControl?.addTarget(self,action:#selector(refresh),for:.valueChanged)
         refresh()
     }
@@ -47,7 +55,10 @@ final class HistorySettingsController: UITableViewController {
         }
     }
     }
-    private var sections:[Int] { policy.mode == .window ? [0,1,2,4,3]:[0,1,4,3] }
+    private var sections:[Int] {
+        if storageOnly {return policy.mode == .window ? [0,1,2]:[0,1]}
+        return policy.mode == .window ? [0,1,2,4,3]:[0,1,4,3]
+    }
     private func logicalSection(_ section:Int) -> Int { sections[section] }
     override func tableView(_ tableView:UITableView,heightForHeaderInSection section:Int) -> CGFloat {
         section == 0 ? 32:UITableView.automaticDimension
@@ -57,7 +68,7 @@ final class HistorySettingsController: UITableViewController {
     }
     override func numberOfSections(in tableView:UITableView) -> Int { sections.count }
     override func tableView(_ tableView:UITableView,numberOfRowsInSection section:Int) -> Int {
-        switch logicalSection(section) { case 0,4:return 1;case 1:return receiver == nil ? 2:3;case 2:return policy.mode == .window ? 1:0;default:return 3 }
+        switch logicalSection(section) { case 0,4:return 1;case 1:return receiver == nil ? 2:3;case 2:return policy.mode == .window ? 1:0;default:return setupGuide == nil ? 3:4 }
     }
     override func tableView(_ tableView:UITableView,titleForHeaderInSection section:Int) -> String? {
         switch logicalSection(section) { case 0,2,4:return nil;case 1:return "Data removal";default:return "History" }
@@ -84,9 +95,9 @@ final class HistorySettingsController: UITableViewController {
             title="Desktop connection";detail=desktopCount == 0 ? "Connect a desktop":"\(desktopCount) approved \(desktopCount == 1 ? "desktop":"desktops")"
             cell.accessoryType = .disclosureIndicator;cell.imageView?.image=UIImage(systemName:"laptopcomputer");cell.imageView?.tintColor=HistoryUI.accent
         default:
-            title=["Export a copy","How it works","Erase saved history"][indexPath.row]
-            cell.imageView?.image=UIImage(systemName:["square.and.arrow.up","info.circle","trash"][indexPath.row]);cell.imageView?.tintColor=indexPath.row == 2 ? .systemRed:HistoryUI.accent
-            cell.accessoryType=indexPath.row == 1 ? .disclosureIndicator:.none
+            title=["Export a copy","How it works","Erase saved history","Setup guide"][indexPath.row]
+            cell.imageView?.image=UIImage(systemName:["square.and.arrow.up","info.circle","trash","checklist"][indexPath.row]);cell.imageView?.tintColor=indexPath.row == 2 ? .systemRed:HistoryUI.accent
+            cell.accessoryType=[1,3].contains(indexPath.row) ? .disclosureIndicator:.none
         }
         var content=cell.defaultContentConfiguration();content.text=title;content.secondaryText=detail.isEmpty ? nil:detail
         content.textProperties.font = .preferredFont(forTextStyle:.body);content.textProperties.color=section == 3 && indexPath.row == 2 ? .systemRed:.label
@@ -117,7 +128,8 @@ final class HistorySettingsController: UITableViewController {
         } else if section == 4 {
             navigationController?.pushViewController(DesktopAccessController(style:.insetGrouped),animated:true)
         } else if section == 3 {
-            if indexPath.row == 1 { navigationController?.pushViewController(HistoryAboutController(style:.insetGrouped),animated:true) }
+            if indexPath.row == 3 {dismiss(animated:true) {self.setupGuide?()}}
+            else if indexPath.row == 1 { navigationController?.pushViewController(HistoryAboutController(style:.insetGrouped),animated:true) }
             else { let action=indexPath.row == 0 ? exportHistory:eraseHistory;dismiss(animated:true) { action?() } }
         }
     }

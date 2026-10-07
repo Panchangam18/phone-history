@@ -11,7 +11,7 @@ TEAM = option('team')
 BUNDLE = option('bundle_id','com.example.phonehistory')
 GROUP = option('group','group.'+BUNDLE)
 CONTROL_KIND = option('control_kind',BUNDLE+'.capture-toggle')
-BUILD = option('build','91')
+BUILD = option('build','93')
 VERSION = option('version','1.0')
 for name,value in [('bundle_id',BUNDLE),('group',GROUP),('control_kind',CONTROL_KIND)]:
     if not re.fullmatch(r'[A-Za-z0-9.-]+',value): raise ValueError('Invalid '+name)
@@ -53,7 +53,7 @@ controls_info = dict(extension_info, CFBundleName='PhoneHistoryControls', CFBund
 (BASE/'Controls/Info.plist').write_bytes(plistlib.dumps(controls_info))
 
 app_sources = ['Shared/MemoryPrompts.swift','Shared/BuildConfiguration.swift','Shared/NaturalMemory.swift','Shared/ContextText.swift','Shared/MemoryRecord.swift','App/HistoryApp.swift','App/HistoryController.swift','App/HistoryListController.swift',
-    'App/HistorySettingsController.swift','App/HistoryUI.swift','App/HistoryAboutController.swift','App/DesktopAccessController.swift','Shared/HistoryPaths.swift','Shared/HistoryReader.swift',
+    'App/SetupState.swift','App/DeveloperTrust.swift','App/SetupController.swift','App/HistorySettingsController.swift','App/HistoryUI.swift','App/HistoryAboutController.swift','App/DesktopAccessController.swift','Shared/HistoryPaths.swift','Shared/HistoryReader.swift',
     'Shared/DesktopAccess.swift','Shared/StoragePolicy.swift','Shared/HistoryOffload.swift','Tunnel/DesktopExportServer.swift','Shared/CaptureControlState.swift','Shared/SetCaptureIntent.swift']
 ext_sources = ['Shared/MemoryPrompts.swift','Shared/BuildConfiguration.swift','Shared/NaturalMemory.swift','Shared/ContextText.swift','Shared/MemoryUsage.m','Shared/MemoryRecord.swift','Shared/MemoryEngine.swift','Tunnel/FrameObservation.swift','Tunnel/PacketTunnelProvider.swift','Tunnel/TunnelConnection.swift','Shared/HistoryPaths.swift',
     'Shared/HistoryReader.swift','Shared/DesktopAccess.swift','Shared/StoragePolicy.swift','Shared/HistoryOffload.swift','Tunnel/DesktopExportServer.swift','Shared/CaptureControlState.swift']

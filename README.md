@@ -6,7 +6,7 @@ A small, on-device memory for your iPhone, with access for agents on a desktop y
 
 Phone History saves bounded changes in visible text, groups them into ten-minute activity memories using Apple's on-device model, and links each memory to its evidence. Pause or resume from the app or Control Center. A paired desktop can retrieve memories, inspect saved evidence, request a current accessibility read, or take a separately permitted screenshot through a local skill or MCP server.
 
-**Developer prototype.** Capture has been exercised on a physical iPhone running iOS 26.6.2. It uses developer services, a local packet-tunnel extension, and one-time developer trust setup. This repository is source code, not an App Store release or a universally installable IPA. New-device onboarding, broad compatibility and App Store eligibility are not verified.
+**Developer prototype.** Capture has been exercised on a physical iPhone running iOS 26.6.2. It uses developer services, a local packet-tunnel extension, and one-time developer trust setup. This repository is source code, not an App Store release or a universally installable IPA. The guided setup is implemented; successful bootstrap on a new, previously unpaired device, broad compatibility and App Store eligibility are not verified.
 
 ## How it works
 
@@ -39,7 +39,7 @@ Configuration can also come from `PHONE_HISTORY_TEAM`, `PHONE_HISTORY_BUNDLE_ID`
 
 ### One-time developer trust import
 
-The app needs a remote developer-pairing record created for **that phone by its own trusted Mac**. Ordinary USB Lockdown pairing is a different record. Obtain the remote record using a compatible developer-service pairing client, such as [pymobiledevice3](https://github.com/doronz88/pymobiledevice3). Acquisition is currently a developer step, not a polished in-app onboarding flow.
+The app needs a remote developer-pairing record created for **that phone by its own trusted Mac**. Ordinary USB Lockdown pairing is a different record. Obtain the remote record using a compatible developer-service pairing client, such as [pymobiledevice3](https://github.com/doronz88/pymobiledevice3). Acquisition remains a developer step. The app now guides trust import, storage, VPN approval, capture readiness and optional desktop pairing; see [the setup guide](docs/SETUP.md).
 
 The conversion helper validates a pymobiledevice3-style record and writes the native schema with owner-only permissions:
 
@@ -50,7 +50,7 @@ Desktop/.venv/bin/python tools/prepare_developer_trust.py --source /private/path
 xcrun devicectl device copy to --device YOUR_DEVICE --domain-type appDataContainer --domain-identifier YOUR_BUNDLE_ID --source /private/path/to/vpn-trial-pairing.plist --destination Documents/vpn-trial-pairing.plist
 ```
 
-Open Phone History. It imports the file into its protected shared container and deletes the Documents copy. Remove your temporary exported file yourself. Never send pairing records to another person or commit them. Tap Start history and approve iOS's VPN configuration. The system VPN indicator remains; another packet-tunnel VPN cannot run alongside capture.
+Alternatively, transfer the converted file to your own phone and select it in the setup guide’s trust importer. Open Phone History after the USB bootstrap: it imports the file into its protected shared container and deletes the controlled Documents copy. Remove your temporary exported file yourself. Never send pairing records to another person or commit them. Tap Start capture and approve iOS's VPN configuration. The system VPN indicator remains; another packet-tunnel VPN cannot run alongside capture.
 
 ## Desktop agents
 

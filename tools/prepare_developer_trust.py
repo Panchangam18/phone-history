@@ -16,12 +16,13 @@ def convert(source):
         raise ValueError('Expected a remote developer record with 32-byte Ed25519 keys')
     derived = Ed25519PrivateKey.from_private_bytes(private).public_key().public_bytes(
         serialization.Encoding.Raw, serialization.PublicFormat.Raw)
-    if derived != public or not isinstance(identifier, str) or not identifier:
+    if (derived != public or not isinstance(identifier, str) or not identifier
+            or len(identifier.encode('utf-8')) > 256 or any(ord(c) < 32 or 127 <= ord(c) <= 159 for c in identifier)):
         raise ValueError('Invalid key pair or missing host identifier')
     result = dict(private_key=private, public_key=public, identifier=identifier)
     alt = record.get('peer_alt_irk') or record.get('alt_irk')
     if alt is not None:
-        if not isinstance(alt, bytes):
+        if not isinstance(alt, bytes) or len(alt) != 16:
             raise ValueError('Expected binary alternate identity key')
         result['alt_irk'] = alt
     return plistlib.dumps(result)

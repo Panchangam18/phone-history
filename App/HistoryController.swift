@@ -84,6 +84,15 @@ final class HistoryController: UIViewController {
                     }
                 }
             }
+            if CommandLine.arguments.contains("--show-onboarding") || CommandLine.arguments.contains("--ui-onboarding") {showSetup()}
+            else if !CommandLine.arguments.contains("--ui-preview"), !CommandLine.arguments.contains("--pair-desktop") {
+                Task {
+                    let hasTrust=await Task.detached(priority:.utility) { (try? HistoryPaths.folder()).map {FileManager.default.fileExists(atPath:$0.appendingPathComponent("remote-pairing.plist").path)} ?? false }.value
+                    let configurations=(try? await NETunnelProviderManager.loadAllFromPreferences()) ?? []
+                    let existing=hasTrust && configurations.contains {($0.protocolConfiguration as? NETunnelProviderProtocol)?.providerBundleIdentifier == HistoryPaths.provider}
+                    if SetupState.shouldPresent(hasExistingSetup:existing) {showSetup()}
+                }
+            }
             if CommandLine.arguments.contains("--pair-desktop") { agentsPressed() }
             if CommandLine.arguments.contains("--verification-export") {
                 Task { try? await Task.sleep(nanoseconds:4_000_000_000); refreshStatus() }
@@ -252,6 +261,14 @@ final class HistoryController: UIViewController {
         controller.exportHistory={ [weak self] in self?.exportPressed() }
         controller.eraseHistory={ [weak self] in self?.erasePressed() }
         controller.didChange={ [weak self] in self?.refreshRetention() }
+        controller.setupGuide={ [weak self] in self?.showSetup() }
+        present(HistoryUI.sheet(controller),animated:true)
+    }
+    private func showSetup() {
+        guard presentedViewController == nil else {return}
+        let controller=SetupController()
+        controller.startCapture={ [weak self] in guard let self else {return};try await self.beginCapture() }
+        controller.didFinish={ [weak self] in self?.refreshStatus() }
         present(HistoryUI.sheet(controller),animated:true)
     }
     @objc private func aboutPressed() {
@@ -261,51 +278,44 @@ final class HistoryController: UIViewController {
         let document = FileManager.default.urls(for:.documentDirectory,in:.userDomainMask)[0]
         let source = document.appendingPathComponent("vpn-trial-pairing.plist")
         guard FileManager.default.fileExists(atPath:source.path) else { return }
-        let data = try Data(contentsOf:source)
-        let record = try PropertyListSerialization.propertyList(from:data,format:nil) as? [String:Any]
-        guard let record, (record["private_key"] as? Data)?.count == 32,
-              (record["public_key"] as? Data)?.count == 32, record["identifier"] is String else {
-            throw NSError(domain:"PhoneHistory",code:3,userInfo:[NSLocalizedDescriptionKey:"The developer trust file is invalid."])
-        }
-        let destination = try HistoryPaths.folder().appendingPathComponent("remote-pairing.plist")
-        try data.write(to:destination,options:[.atomic,.completeFileProtectionUntilFirstUserAuthentication])
-        try FileManager.default.setAttributes([.posixPermissions:0o600],ofItemAtPath:destination.path)
+        try DeveloperTrust.install(source,folder:HistoryPaths.folder())
         try FileManager.default.removeItem(at:source)
     }
     @objc private func startPressed() {
-        guard !busy else { return }
-        busy = true; setCaptureState("Starting"); showStatus("Approve the VPN configuration if iOS asks.")
-        Task {
-            defer { busy = false }
-            do {
-                let pairing = try HistoryPaths.folder().appendingPathComponent("remote-pairing.plist")
-                guard FileManager.default.fileExists(atPath:pairing.path) else {
-                    throw NSError(domain:"PhoneHistory",code:4,userInfo:[NSLocalizedDescriptionKey:"Developer trust must be imported before capture can start."])
-                }
-                let all:[NETunnelProviderManager]
-                if let manager { all=[manager] } else { all=try await NETunnelProviderManager.loadAllFromPreferences() }
-                let manager = all.first { ($0.protocolConfiguration as? NETunnelProviderProtocol)?.providerBundleIdentifier == HistoryPaths.provider } ?? NETunnelProviderManager()
-                let config = NETunnelProviderProtocol()
-                config.providerBundleIdentifier = HistoryPaths.provider
-                config.serverAddress = "On-device history"
-                config.providerConfiguration = ["schema":1]
-                manager.protocolConfiguration = config
-                manager.localizedDescription = "Phone History"
-                manager.isEnabled = true
-                let rule = NEOnDemandRuleConnect(); rule.interfaceTypeMatch = .any
-                manager.onDemandRules = [rule]; manager.isOnDemandEnabled = true
-                try await manager.saveToPreferences()
-                try await manager.loadFromPreferences()
-                self.manager = manager
-                var options: [String:NSObject] = [:]
-                let args = CommandLine.arguments
-                if let index=args.firstIndex(of:"--history-trial-seconds"), index+1<args.count, let seconds=Int(args[index+1]) {
-                    options["trialSeconds"] = NSNumber(value:min(600,max(60,seconds)))
-                }
-                try manager.connection.startVPNTunnel(options:options)
-                showStatus(nil); refreshConnectionStatus()
-            } catch { showStatus(error.localizedDescription) }
+        guard !busy else {return}
+        if let folder=try? HistoryPaths.folder(),!FileManager.default.fileExists(atPath:folder.appendingPathComponent("remote-pairing.plist").path) {showSetup();return}
+        Task {do {try await beginCapture()} catch {showStatus(error.localizedDescription)}}
+    }
+    private func beginCapture() async throws {
+        guard !busy else {throw NSError(domain:"PhoneHistory",code:5,userInfo:[NSLocalizedDescriptionKey:"Capture is already changing state. Please try again in a moment."])}
+        busy=true;setCaptureState("Starting");showStatus("Approve the VPN configuration if iOS asks.")
+        defer {busy=false}
+        let pairing = try HistoryPaths.folder().appendingPathComponent("remote-pairing.plist")
+        guard FileManager.default.fileExists(atPath:pairing.path) else {
+            throw NSError(domain:"PhoneHistory",code:4,userInfo:[NSLocalizedDescriptionKey:"Developer trust must be imported before capture can start."])
         }
+        let all:[NETunnelProviderManager]
+        if let manager { all=[manager] } else { all=try await NETunnelProviderManager.loadAllFromPreferences() }
+        let manager = all.first { ($0.protocolConfiguration as? NETunnelProviderProtocol)?.providerBundleIdentifier == HistoryPaths.provider } ?? NETunnelProviderManager()
+        let config = NETunnelProviderProtocol()
+        config.providerBundleIdentifier = HistoryPaths.provider
+        config.serverAddress = "On-device history"
+        config.providerConfiguration = ["schema":1]
+        manager.protocolConfiguration = config
+        manager.localizedDescription = "Phone History"
+        manager.isEnabled = true
+        let rule = NEOnDemandRuleConnect(); rule.interfaceTypeMatch = .any
+        manager.onDemandRules = [rule]; manager.isOnDemandEnabled = true
+        try await manager.saveToPreferences()
+        try await manager.loadFromPreferences()
+        self.manager = manager
+        var options: [String:NSObject] = [:]
+        let args = CommandLine.arguments
+        if let index=args.firstIndex(of:"--history-trial-seconds"), index+1<args.count, let seconds=Int(args[index+1]) {
+            options["trialSeconds"] = NSNumber(value:min(600,max(60,seconds)))
+        }
+        try manager.connection.startVPNTunnel(options:options)
+        showStatus(nil); refreshConnectionStatus()
     }
     @objc private func stopPressed() {
         guard !busy else { return }; busy = true;setCaptureState("Pausing");showStatus(nil)
