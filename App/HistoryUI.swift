@@ -57,7 +57,7 @@ enum HistoryUI {
         item.title=title
         item.largeTitleDisplayMode = .never
         item.titleView=UIView()
-        let text=label(title,style:.headline)
+        let text=label(title,style:.title1,weight:.bold)
         text.accessibilityTraits = .header
         let icon=sectionIcon(symbol)
         let heading=stack([icon,text],spacing:sectionIconSpacing,axis:.horizontal);heading.alignment = .center

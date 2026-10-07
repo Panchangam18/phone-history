@@ -4,6 +4,8 @@ Status checked 2026-10-06: build 69 archived, installed, uploaded and processed 
 
 ## Prepared
 
+- Development build 87 uses matching 28-point bold, Dynamic Type-aware text for History and Settings sheet headings to balance the expanded spacing. Existing icons, X buttons and the scroll-layout fix remain. Simulator inspection verified the Settings heading; the build compiled, installed and launched on the development iPhone. Build 69 remains the App Store Connect candidate; build 87 has not been uploaded or verified through TestFlight.
+
 - Development build 86 pins the Home scroll view to the fixed view bounds rather than the moving navigation safe area, allowing UIKit to adjust content insets during large-title collapse. History and Settings each add 24 points of space below their sheet headings. The build compiled, installed and launched on the development iPhone; simulator visual inspection verified Home, History and Settings. The simulator gesture input was unavailable, so smooth scrolling still requires a physical-device check. Build 69 remains the App Store Connect candidate; build 86 has not been uploaded or verified through TestFlight.
 
 - Development build 85 gives Home the native iOS large navigation title “Phone history,” following the supplied Settings reference. Existing cards and sheet styling remain in place. Simulator inspection verified the title spacing and Settings navigation; the build compiled, installed and launched on the development iPhone. Build 69 remains the App Store Connect candidate; build 85 has not been uploaded or verified through TestFlight.
