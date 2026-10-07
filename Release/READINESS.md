@@ -4,6 +4,8 @@ Status checked 2026-10-06: build 69 archived, installed, uploaded and processed 
 
 ## Prepared
 
+- Development build 91 places the large Phone history title and Settings gear in one ordinary scrolling header. Title and cards share the same 20-point left inset, and the gear is vertically centered with the title. The native Home navigation wrapper is removed, so the header scrolls with the cards rather than collapsing. Simulator inspection verified alignment and Settings navigation; the build compiled, installed and launched on the development iPhone. Build 69 remains the App Store Connect candidate; build 91 has not been uploaded or verified through TestFlight.
+
 - Development build 90 moves Settings to a native accent-colored gear button at the top right of Home and removes the separate bottom Settings row and unused footer preview variation. Simulator inspection verified appearance and opening Settings; the build compiled, installed and launched on the development iPhone. Build 69 remains the App Store Connect candidate; build 90 has not been uploaded or verified through TestFlight.
 
 - Development build 89 simplifies Desktop connection to pairing instructions, the connection address, approved desktops and screenshot state. Detailed access disclosure stays in the approval dialog; revocation guidance stays beside approved desktops. The Settings subpage uses only native back navigation; the standalone pairing launch route retains an X close button. Simulator inspection verified the subpage and missing top-right button; the build compiled, installed and launched on the development iPhone. Build 69 remains the App Store Connect candidate; build 89 has not been uploaded or verified through TestFlight.

@@ -30,11 +30,6 @@ final class HistoryController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title="Phone history"
-        navigationItem.largeTitleDisplayMode = .always
-        let settings=UIBarButtonItem(image:UIImage(systemName:"gearshape"),style:.plain,target:self,action:#selector(settingsPressed))
-        settings.tintColor=HistoryUI.accent
-        settings.accessibilityLabel="Settings"
-        navigationItem.rightBarButtonItem=settings
         view.backgroundColor = .systemGroupedBackground
         view.tintColor = HistoryUI.accent
         buildInterface()
@@ -96,6 +91,21 @@ final class HistoryController: UIViewController {
         }
     }
     private func buildInterface() {
+        let heading=HistoryUI.label("Phone history",style:.largeTitle,weight:.bold)
+        heading.accessibilityTraits = .header
+        let settings=UIButton(type:.system)
+        var settingsStyle=UIButton.Configuration.plain()
+        settingsStyle.image=UIImage(systemName:"gearshape")
+        settingsStyle.preferredSymbolConfigurationForImage = .init(pointSize:22,weight:.regular)
+        settingsStyle.baseForegroundColor=HistoryUI.accent
+        settingsStyle.background.backgroundColor = .tertiarySystemFill
+        settingsStyle.cornerStyle = .capsule
+        settings.configuration=settingsStyle
+        settings.accessibilityLabel="Settings"
+        settings.addTarget(self,action:#selector(settingsPressed),for:.touchUpInside)
+        NSLayoutConstraint.activate([settings.widthAnchor.constraint(equalToConstant:44),settings.heightAnchor.constraint(equalToConstant:44)])
+        let homeHeading=HistoryUI.stack([heading,UIView(),settings],spacing:12,axis:.horizontal)
+        homeHeading.alignment = .center
         let stateLabels=HistoryUI.stack([stateTitle,stateSubtitle],spacing:4)
         captureSwitch.onTintColor=HistoryUI.accent
         captureSwitch.accessibilityLabel="Capture"
@@ -137,16 +147,15 @@ final class HistoryController: UIViewController {
         recentHeading.directionalLayoutMargins=NSDirectionalEdgeInsets(top:8,leading:20,bottom:8,trailing:20)
         previewStack.axis = .vertical;previewStack.spacing=0
         let recentSection=HistoryUI.card(HistoryUI.stack([recentHeading,HistoryUI.separator(),previewStack],spacing:0),inset:0)
-        let stack=HistoryUI.stack([captureSection,recentSection],spacing:24)
+        let stack=HistoryUI.stack([homeHeading,captureSection,recentSection],spacing:24)
         let scroll=UIScrollView();scroll.translatesAutoresizingMaskIntoConstraints=false;view.addSubview(scroll);scroll.alwaysBounceVertical=true
         let refresh=UIRefreshControl();refresh.addTarget(self,action:#selector(pullRefresh(_:)),for:.valueChanged);scroll.refreshControl=refresh
         stack.translatesAutoresizingMaskIntoConstraints=false;scroll.addSubview(stack)
         NSLayoutConstraint.activate([
-            // Keep the frame fixed while the navigation title collapses. UIKit
-            // adjusts the content inset rather than moving the scroll view.
+            // Keep the frame fixed; UIKit applies the safe-area content insets.
             scroll.topAnchor.constraint(equalTo:view.topAnchor),scroll.bottomAnchor.constraint(equalTo:view.bottomAnchor),
             scroll.leadingAnchor.constraint(equalTo:view.leadingAnchor),scroll.trailingAnchor.constraint(equalTo:view.trailingAnchor),
-            stack.topAnchor.constraint(equalTo:scroll.contentLayoutGuide.topAnchor,constant:20),stack.bottomAnchor.constraint(equalTo:scroll.contentLayoutGuide.bottomAnchor,constant:-40),
+            stack.topAnchor.constraint(equalTo:scroll.contentLayoutGuide.topAnchor,constant:64),stack.bottomAnchor.constraint(equalTo:scroll.contentLayoutGuide.bottomAnchor,constant:-40),
             stack.leadingAnchor.constraint(equalTo:scroll.contentLayoutGuide.leadingAnchor,constant:20),stack.trailingAnchor.constraint(equalTo:scroll.contentLayoutGuide.trailingAnchor,constant:-20),
             stack.widthAnchor.constraint(equalTo:scroll.frameLayoutGuide.widthAnchor,constant:-40)])
         updateCaptureControl()
