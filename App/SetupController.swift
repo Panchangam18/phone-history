@@ -100,10 +100,11 @@ final class SetupController: UIViewController, UIDocumentPickerDelegate {
         if step == .capture {
             let explanation=HistoryUI.label("Activity memories stay on this iPhone. Images are discarded; visible private content may be saved.",style:.subheadline,color:.secondaryLabel)
             content.addArrangedSubview(explanation)
-            var rows:[UIView]=[]
+            var rows:[UIView]=[
+                row("Developer Mode required","Keep Developer Mode enabled for capture. Settings → Privacy & Security → Developer Mode; restart and confirm if enabling it.","wrench.and.screwdriver"),
+                button("Open Settings",#selector(developerModeHelp))
+            ]
             if !hasTrust {
-                rows.append(row("Prepare your iPhone","Settings → Privacy & Security → Developer Mode. Restart and confirm.","wrench.and.screwdriver"))
-                rows.append(button("Open Settings",#selector(developerModeHelp)))
                 rows.append(row("Import developer trust","Connect to your own Mac by USB. Follow the Mac guide to export this phone’s secret trust file.","key"))
             } else {
                 rows.append(row("Developer trust imported","Start capture to verify the on-device connection.","checkmark.circle"))
