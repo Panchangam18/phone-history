@@ -3,6 +3,7 @@ import UIKit
 @MainActor
 enum HistoryUI {
     static let sectionIconSpacing:CGFloat = 8
+    static let sheetRowInsets=NSDirectionalEdgeInsets(top:20,leading:16,bottom:20,trailing:16)
     static let accent = UIColor { traits in
         traits.userInterfaceStyle == .dark ? UIColor(red:0.63,green:0.70,blue:1,alpha:1) : UIColor(red:0.29,green:0.38,blue:0.78,alpha:1)
     }
@@ -57,7 +58,7 @@ enum HistoryUI {
         item.title=title
         item.largeTitleDisplayMode = .never
         item.titleView=UIView()
-        let text=label(title,style:.title1,weight:.bold)
+        let text=label(title,style:.title3,weight:.semibold)
         text.accessibilityTraits = .header
         let icon=sectionIcon(symbol)
         let heading=stack([icon,text],spacing:sectionIconSpacing,axis:.horizontal);heading.alignment = .center

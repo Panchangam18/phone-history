@@ -13,15 +13,16 @@ final class HistoryListController: UITableViewController {
         super.viewDidLoad();title="History"
         HistoryUI.sheetHeading("History",symbol:"clock.arrow.circlepath",on:navigationItem)
         tableView.backgroundColor = .systemGroupedBackground;tableView.rowHeight=UITableView.automaticDimension;tableView.estimatedRowHeight=140
+        tableView.directionalLayoutMargins = .init(top:0,leading:16,bottom:0,trailing:16)
         navigationItem.rightBarButtonItem=UIBarButtonItem(barButtonSystemItem:.close,target:self,action:#selector(close))
         refreshControl=UIRefreshControl();refreshControl?.addTarget(self,action:#selector(reload),for:.valueChanged)
         mode.selectedSegmentIndex=0;mode.addTarget(self,action:#selector(reload),for:.valueChanged)
-        let header=UIView(frame:CGRect(x:0,y:0,width:view.bounds.width,height:94));header.addSubview(mode)
+        let header=UIView(frame:CGRect(x:0,y:0,width:view.bounds.width,height:82));header.addSubview(mode)
         mode.translatesAutoresizingMaskIntoConstraints=false
         NSLayoutConstraint.activate([
-            mode.leadingAnchor.constraint(equalTo:header.leadingAnchor,constant:20),
-            mode.trailingAnchor.constraint(equalTo:header.trailingAnchor,constant:-20),
-            mode.topAnchor.constraint(equalTo:header.topAnchor,constant:44),
+            mode.leadingAnchor.constraint(equalTo:header.leadingAnchor,constant:16),
+            mode.trailingAnchor.constraint(equalTo:header.trailingAnchor,constant:-16),
+            mode.topAnchor.constraint(equalTo:header.topAnchor,constant:32),
             mode.bottomAnchor.constraint(equalTo:header.bottomAnchor,constant:-16)])
         tableView.tableHeaderView=header
         loadHistory()
@@ -85,10 +86,10 @@ final class HistoryListController: UITableViewController {
         let cell=tableView.dequeueReusableCell(withIdentifier:"history") ?? UITableViewCell(style:.subtitle,reuseIdentifier:"history")
         let entry=days[indexPath.section].entries[indexPath.row]
         var content=cell.defaultContentConfiguration();content.text=entry.memory?.title ?? ContextText.title(entry)
-        content.textProperties.font = .preferredFont(forTextStyle:.subheadline);content.textProperties.color=HistoryUI.accent
+        content.textProperties.font = .preferredFont(forTextStyle:.headline);content.textProperties.color = .label
         content.secondaryText=entry.memory == nil ? (["\(ContextText.usefulLabel(entry.label) ? entry.label+" · " : "")\(timeFormatter.string(from:entry.date))"]+ContextText.content(entry.text)).joined(separator:"\n"):"\(timeFormatter.string(from:Date(timeIntervalSince1970:entry.memory!.start)))–\(timeFormatter.string(from:Date(timeIntervalSince1970:entry.memory!.end)))\n"+entry.memory!.summary;content.secondaryTextProperties.font = .preferredFont(forTextStyle:.body)
         content.secondaryTextProperties.color = .label;content.secondaryTextProperties.numberOfLines=0
-        content.textToSecondaryTextVerticalPadding=12;content.directionalLayoutMargins = .init(top:24,leading:20,bottom:24,trailing:20)
+        content.textToSecondaryTextVerticalPadding=12;content.directionalLayoutMargins=HistoryUI.sheetRowInsets
         cell.contentConfiguration=content;cell.selectionStyle=entry.memory == nil ? .none:.default;cell.accessoryType=entry.memory == nil ? .none:.disclosureIndicator;return cell
     }
 }

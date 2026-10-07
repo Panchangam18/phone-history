@@ -14,7 +14,8 @@ final class HistorySettingsController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad();title="Settings";tableView.rowHeight=UITableView.automaticDimension;tableView.estimatedRowHeight=80
         HistoryUI.sheetHeading("Settings",symbol:"gearshape",on:navigationItem)
-        tableView.tableHeaderView=UIView(frame:CGRect(x:0,y:0,width:1,height:32))
+        tableView.directionalLayoutMargins = .init(top:0,leading:16,bottom:0,trailing:16)
+        tableView.tableHeaderView=UIView(frame:CGRect(x:0,y:0,width:1,height:4))
         navigationItem.rightBarButtonItem=UIBarButtonItem(barButtonSystemItem:.close,target:self,action:#selector(close))
         refreshControl=UIRefreshControl();refreshControl?.addTarget(self,action:#selector(refresh),for:.valueChanged)
         refresh()
@@ -90,6 +91,8 @@ final class HistorySettingsController: UITableViewController {
         var content=cell.defaultContentConfiguration();content.text=title;content.secondaryText=detail.isEmpty ? nil:detail
         content.textProperties.font = .preferredFont(forTextStyle:.body);content.textProperties.color=section == 3 && indexPath.row == 2 ? .systemRed:.label
         content.secondaryTextProperties.numberOfLines=0;content.secondaryTextProperties.font = .preferredFont(forTextStyle:.subheadline)
+        content.directionalLayoutMargins=HistoryUI.sheetRowInsets
+        content.textToSecondaryTextVerticalPadding=4
         cell.contentConfiguration=content
         if section != 0 { cell.accessibilityTraits = .button }
         if cell.accessoryType == .checkmark { cell.accessibilityTraits.insert(.selected) }
