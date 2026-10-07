@@ -14,6 +14,18 @@ final class SetupController: UIViewController, UIDocumentPickerDelegate {
     private var desktops = 0
     private var policy = StoragePolicy()
     private var working = false
+    #if targetEnvironment(simulator)
+    private var previewTrust=false
+    private var previewCapture=false
+    private var previewDesktops=0
+    private var interactivePreview:Bool {CommandLine.arguments.contains("--ui-interactive-setup")}
+    private func previewPrompt(title:String,message:String,action:String,confirm:@escaping ()->Void) {
+        let alert=UIAlertController(title:title,message:message,preferredStyle:.alert)
+        alert.addAction(UIAlertAction(title:"Cancel",style:.cancel))
+        alert.addAction(UIAlertAction(title:action,style:.default) { _ in confirm();self.reloadState() })
+        present(alert,animated:true)
+    }
+    #endif
     private var checkTask: Task<Void,Never>?
     private var activeObserver:NSObjectProtocol?
     private let scroll=UIScrollView()
@@ -140,6 +152,13 @@ final class SetupController: UIViewController, UIDocumentPickerDelegate {
         }
     }
     private func readState() async throws {
+        #if targetEnvironment(simulator)
+        if interactivePreview {
+            hasTrust=previewTrust;captureVerified=previewCapture;vpnActive=previewCapture;desktops=previewDesktops
+            policy=try await Task.detached(priority:.utility) {try StoragePolicy.load(HistoryPaths.folder())}.value
+            return
+        }
+        #endif
         let value=try await Task.detached(priority:.utility) {
             let folder=try HistoryPaths.folder()
             let hasTrust=FileManager.default.fileExists(atPath:folder.appendingPathComponent("remote-pairing.plist").path)
@@ -163,6 +182,12 @@ final class SetupController: UIViewController, UIDocumentPickerDelegate {
         guard !working else {return}
         if step == .capture && !hasTrust {importTrust();return}
         if step == .capture && !captureVerified {
+            #if targetEnvironment(simulator)
+            if interactivePreview {
+                previewPrompt(title:"Allow capture?",message:"Simulator preview of the VPN approval. No VPN or capture will be started.",action:"Allow") {self.previewCapture=true}
+                return
+            }
+            #endif
             working=true;render()
             Task {
                 do {
@@ -204,6 +229,12 @@ final class SetupController: UIViewController, UIDocumentPickerDelegate {
     @objc private func desktopGuide() {UIApplication.shared.open(URL(string:"https://github.com/Panchangam18/phone-history/blob/main/Desktop/README.md")!)}
     @objc private func appSettings() {UIApplication.shared.open(URL(string:UIApplication.openSettingsURLString)!)}
     @objc private func developerModeHelp() {
+        #if targetEnvironment(simulator)
+        if interactivePreview {
+            previewPrompt(title:"Developer Mode",message:"Simulator preview only. On an iPhone, this step opens Settings and you enable Developer Mode, restart and confirm.",action:"Try next step") {}
+            return
+        }
+        #endif
         let alert=UIAlertController(title:"Enable Developer Mode",message:"The shortcut opens Phone History’s settings. Go back to the main Settings list, then Privacy & Security → Developer Mode. Turn it on, restart and confirm.\n\nIf the switch is missing, connect your iPhone to Xcode on your own Mac first.",preferredStyle:.alert)
         alert.addAction(UIAlertAction(title:"Open Settings",style:.default) { [weak self] _ in self?.appSettings() })
         alert.addAction(UIAlertAction(title:"Cancel",style:.cancel));present(alert,animated:true)
@@ -212,8 +243,26 @@ final class SetupController: UIViewController, UIDocumentPickerDelegate {
         let settings=HistorySettingsController(style:.insetGrouped);settings.storageOnly=true
         navigationController?.pushViewController(settings,animated:true)
     }
-    @objc private func connectDesktop() {navigationController?.pushViewController(DesktopAccessController(style:.insetGrouped),animated:true)}
+    @objc private func connectDesktop() {
+        #if targetEnvironment(simulator)
+        if interactivePreview {
+            if previewDesktops > 0 {
+                previewPrompt(title:"Preview desktop",message:"Screenshots are off. This is a mock approval; no device has access.",action:"Revoke preview desktop") {self.previewDesktops=0}
+            } else {
+                previewPrompt(title:"Approve preview desktop?",message:"Preview of fingerprint approval. On a real device you import a public pairing request and compare its fingerprint with your desktop. No device is connected in this demo.",action:"Approve preview desktop") {self.previewDesktops=1}
+            }
+            return
+        }
+        #endif
+        navigationController?.pushViewController(DesktopAccessController(style:.insetGrouped),animated:true)
+    }
     @objc private func importTrust() {
+        #if targetEnvironment(simulator)
+        if interactivePreview {
+            previewPrompt(title:"Import trust file",message:"Simulator preview: use a sample import. On your iPhone, you choose the secret file exported by its own Mac.",action:"Import sample") {self.previewTrust=true}
+            return
+        }
+        #endif
         let picker=UIDocumentPickerViewController(forOpeningContentTypes:[.propertyList],asCopy:false)
         picker.delegate=self;present(picker,animated:true)
     }

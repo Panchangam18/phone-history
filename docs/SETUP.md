@@ -58,3 +58,15 @@ Open Control Center, hold an empty area, tap **Add a Control**, search for **Pho
 Setup resumes from its last step if interrupted. Reopen it in **Phone History → Settings → Setup guide**. Existing trusted installations keep their current storage settings and approvals rather than being forced through first-launch setup.
 
 Apple references: [Developer Mode](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device), [supported app Settings shortcut](https://developer.apple.com/documentation/uikit/uiapplication/opensettingsurlstring).
+
+## Interactive simulator preview
+
+To walk through the two screens without real developer credentials or device access:
+
+```sh
+python3 make_ui_preview.py
+xcrun simctl install booted build/UI38Preview.app
+xcrun simctl launch --terminate-running-process booted com.example.phonehistory.ui-preview --ui-preview --ui-onboarding --ui-interactive-setup
+```
+
+Trust import, VPN approval and desktop approval use explicitly labeled mock dialogs. They create no VPN, capture, credentials or desktop access. Storage controls use the isolated simulator store. Relaunch with the same arguments to start over. This preview is compiled only for the simulator; it does not verify real-device permissions or bootstrap.
