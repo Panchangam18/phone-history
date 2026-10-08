@@ -10,7 +10,7 @@ let rows: [[String:Any]] = [
     ["s":3,"p":1,"n":["Page B"],"c":[2,1]],
     ["s":4,"p":2,"a":"Second","n":["Elsewhere"]], ["s":5,"p":1],
     ["s":6,"p":1,"c":[0,1]], ["s":7,"p":1,"reset_p":true,"n":["Fresh"]],
-    ["s":8,"p":1,"reset":true,"a":"Restart","n":["New"]]
+    ["s":8,"p":1,"reset":true,"a":"Restart","n":["New"],"host_app_identity_verified":true]
 ]
 var fixture = Data()
 for row in rows { fixture.append(try JSONSerialization.data(withJSONObject:row)); fixture.append(10) }
@@ -20,6 +20,7 @@ let read = try HistoryReader.read([path],includeNoise:true)
 assert(read.skippedRows == 1)
 assert(read.entries.count == 8)
 assert(read.entries[0].label == "Restart" && read.entries[0].text == ["New"])
+assert(read.entries[0].appIdentityVerified && !read.entries[1].appIdentityVerified)
 assert(read.entries[1].text == ["Fresh"])
 assert(read.entries[2].text == ["Page A","Shared"])
 assert(read.entries[3].text == ["Page B","Shared"])
@@ -43,6 +44,26 @@ try longFixture.write(to:longPath)
 let oldest=try HistoryReader.readIDs([longPath],ids:["e-0","e-20004"])
 assert(oldest.entries.map{$0.id} == ["e-20004","e-0"])
 assert(oldest.entries.last!.text == ["Observation 0"])
+// Summary context keeps screen boundaries and meaningful lines, omitting an
+// unverified process hint rather than attributing the text to a stale app.
+let context=HistoryEntry(date:Date(timeIntervalSince1970:1000),label:"Stale process",text:["Follow","A post about orbital telescopes","Another author discusses coral reefs"],id:"e-context",source:"OCR")
+let excerpts=NaturalMemory.excerpts([context])
+let prompt=NaturalMemory.excerptPrompt(excerpts)
+assert(!prompt.contains("Stale process") && !prompt.contains("1: Follow"))
+assert(prompt.contains("1: A post about orbital telescopes\n2: Another author discusses coral reefs"))
+let wrapped=HistoryEntry(date:context.date,label:"Context",text:["Questions to ask a potential","spouse."])
+assert(NaturalMemory.clean(wrapped) == wrapped.text)
+let draft=NaturalMemory.grounded(title:"Space and reefs",summary:"You browsed posts about orbital telescopes and coral reefs.",lines:[(1,1),(1,2)],excerpts:excerpts)!
+assert(draft.quotes == ["A post about orbital telescopes","Another author discusses coral reefs"])
+assert(draft.supportSources == ["e-context","e-context"])
+assert(NaturalMemory.grounded(title:"Space",summary:"You browsed a post.",lines:[(1,99)],excerpts:excerpts) == nil)
+let duplicates=(0..<30).map {HistoryEntry(date:Date(timeIntervalSince1970:Double($0)),label:"Context",text:["Repeated visible subject"],id:"e-repeat-\($0)")}
+let ending=HistoryEntry(date:Date(timeIntervalSince1970:31),label:"Context",text:["A distinct result at the end"],id:"e-ending")
+assert(NaturalMemory.representative(duplicates+[ending]).map{$0.id} == ["e-repeat-0","e-ending"])
+let longScreens=(0..<12).map {HistoryEntry(date:Date(timeIntervalSince1970:Double($0)),label:"Context",text:["Screen \($0): "+String(repeating:"context ",count:200)],id:"e-long-\($0)")}
+let boundedPrompt=NaturalMemory.excerptPrompt(NaturalMemory.excerpts(longScreens))
+assert(boundedPrompt.utf8.count < 8000)
+assert(NaturalMemory.excerpts(longScreens).allSatisfy{$0.text.utf8.count>240})
 if CommandLine.arguments.count > 1 {
     let actual = try HistoryReader.read([URL(fileURLWithPath:CommandLine.arguments[1])])
     assert(actual.skippedRows == 0)

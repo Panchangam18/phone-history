@@ -198,7 +198,7 @@ final class DesktopExportProtocol {
             } else {result=try HistoryReader.readNewest(files,limit:operation == "memories" ? min(20,limit):limit,since:Date(timeIntervalSince1970:since),kind:operation == "memories" ? "memories":"evidence")}
             response["entries"] = result.entries.map {
                 if let memory=$0.memory,let data=try? JSONEncoder().encode(memory),let row=(try? JSONSerialization.jsonObject(with:data)) as? [String:Any] {return row}
-                return ["timestamp":$0.date.timeIntervalSince1970,"app_label":$0.label,"text":$0.text,"id":$0.id,"source":$0.source,"partial":true,"host_app_identity_verified":false] as [String:Any]
+                return ["timestamp":$0.date.timeIntervalSince1970,"app_label":$0.label,"text":$0.text,"id":$0.id,"source":$0.source,"partial":true,"host_app_identity_verified":$0.appIdentityVerified] as [String:Any]
             }
             if operation == "memories" {response["coverage"]="AI-generated summaries of partial observations. Source IDs reference bounded evidence; no proof of actions or intent."}
             response["skipped_rows"] = result.skippedRows

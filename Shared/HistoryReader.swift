@@ -8,6 +8,7 @@ struct HistoryEntry: Sendable {
     var id:String = ""
     var source:String = "AX"
     var memory:MemoryRecord? = nil
+    var appIdentityVerified:Bool = false
 }
 
 struct HistoryReadResult: Sendable {
@@ -112,7 +113,7 @@ enum HistoryReader {
                 else {id="legacy-"+SHA256.hash(data:Data("\(pid)|\(epoch+Double(seconds))|\(state.text.joined(separator:"|"))".utf8)).map{String(format:"%02x",$0)}.joined()}
                 if let ids,!ids.contains(id) {continue}
                 entries.append(HistoryEntry(date:Date(timeIntervalSince1970:epoch+Double(seconds)),
-                    label:state.label.isEmpty ? "App context" : state.label, text:state.text,id:id,source:row["source"] as? String ?? "AX"))
+                    label:state.label.isEmpty ? "App context" : state.label, text:state.text,id:id,source:row["source"] as? String ?? "AX",appIdentityVerified:row["host_app_identity_verified"] as? Bool ?? false))
                 if entries.count > max(1,limit)*2 { entries.removeFirst(entries.count-max(1,limit)) }
             }
         }

@@ -16,6 +16,8 @@ struct MemoryRecord: Codable, Sendable {
     let model:String
     var format:Int? = nil
     var activityInferred:Bool? = nil
+    // Parallel to facts: the observation containing each verbatim supporting quote.
+    var supportSources:[String]? = nil
     static func decode(_ row:[String:Any]) -> Self? {
         guard row["kind"] as? String == "memory",let data=try? JSONSerialization.data(withJSONObject:row),
             let value=try? JSONDecoder().decode(Self.self,from:data),value.valid else { return nil }
@@ -25,7 +27,9 @@ struct MemoryRecord: Codable, Sendable {
         evidenceChecked && ["10min","6h"].contains(scope) && id.hasPrefix("m-") && id.utf8.count<=64 && start.isFinite && end.isFinite && end>=start &&
         !title.isEmpty && title.utf8.count<=160 && !summary.isEmpty && summary.utf8.count<=1000 && facts.count<=4 &&
         facts.allSatisfy{$0.utf8.count<=240} && !sources.isEmpty && sources.count<=40 && sources.allSatisfy{!$0.isEmpty && $0.utf8.count<=80} &&
-        apps.count<=24 && apps.allSatisfy{$0.utf8.count<=80} && generatedAt.isFinite && ["apple-system-language-model","deterministic-evidence"].contains(model)
+        apps.count<=24 && apps.allSatisfy{$0.utf8.count<=80} &&
+        (supportSources == nil || (supportSources!.count == facts.count && supportSources!.allSatisfy{sources.contains($0)})) &&
+        generatedAt.isFinite && ["apple-system-language-model","deterministic-evidence"].contains(model)
     }
     func rowData() throws -> Data {
         guard valid else { throw DesktopAccess.AccessError.invalidRequest }

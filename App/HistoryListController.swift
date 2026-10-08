@@ -99,7 +99,7 @@ final class HistoryListController: UITableViewController {
         let entry=days[indexPath.section].entries[indexPath.row]
         var content=cell.defaultContentConfiguration();content.text=entry.memory?.title ?? ContextText.title(entry)
         content.textProperties.font = .preferredFont(forTextStyle:.headline);content.textProperties.color = .label
-        content.secondaryText=entry.memory == nil ? (["\(ContextText.usefulLabel(entry.label) ? entry.label+" · " : "")\(timeFormatter.string(from:entry.date))"]+ContextText.content(entry.text)).joined(separator:"\n"):"\(timeFormatter.string(from:Date(timeIntervalSince1970:entry.memory!.start)))–\(timeFormatter.string(from:Date(timeIntervalSince1970:entry.memory!.end)))\n"+entry.memory!.summary;content.secondaryTextProperties.font = .preferredFont(forTextStyle:.body)
+        content.secondaryText=entry.memory == nil ? (["\(entry.appIdentityVerified && ContextText.usefulLabel(entry.label) ? entry.label+" · " : "")\(timeFormatter.string(from:entry.date))"]+ContextText.content(entry.text)).joined(separator:"\n"):"\(timeFormatter.string(from:Date(timeIntervalSince1970:entry.memory!.start)))–\(timeFormatter.string(from:Date(timeIntervalSince1970:entry.memory!.end)))\n"+entry.memory!.summary;content.secondaryTextProperties.font = .preferredFont(forTextStyle:.body)
         content.secondaryTextProperties.color = .label;content.secondaryTextProperties.numberOfLines=5
         content.textToSecondaryTextVerticalPadding=12;content.directionalLayoutMargins=HistoryUI.sheetRowInsets
         cell.contentConfiguration=content;cell.selectionStyle = .default;cell.accessoryType = .disclosureIndicator;return cell
@@ -145,7 +145,15 @@ private final class MemoryEvidenceController:UITableViewController {
     override func tableView(_ tableView:UITableView,cellForRowAt indexPath:IndexPath)->UITableViewCell {
         let cell=tableView.dequeueReusableCell(withIdentifier:"evidence") ?? UITableViewCell(style:.subtitle,reuseIdentifier:"evidence");var content=cell.defaultContentConfiguration()
         if indexPath.section == 0 {content.text=memory.title;content.secondaryText=memory.summary}
-        else {let e=entries[indexPath.row];content.text="\(ContextText.title(e)) · \(e.date.formatted(date:.omitted,time:.shortened))";content.secondaryText=e.text.joined(separator:"\n")}
+        else {
+            let e=entries[indexPath.row]
+            content.text="\(ContextText.title(e)) · \(e.date.formatted(date:.omitted,time:.shortened))"
+            let quotes=(memory.supportSources ?? []).enumerated().compactMap { index,id in
+                id == e.id && memory.facts.indices.contains(index) ? memory.facts[index]:nil
+            }
+            content.secondaryText=quotes.isEmpty ? e.text.joined(separator:"\n"):quotes.joined(separator:"\n\n")
+            if let quote=quotes.first {content.text="\(MemoryText.bounded(quote,bytes:160)) · \(e.date.formatted(date:.omitted,time:.shortened))"}
+        }
         content.textProperties.font = .preferredFont(forTextStyle:.subheadline);content.secondaryTextProperties.font = .preferredFont(forTextStyle:.body);content.secondaryTextProperties.numberOfLines=5
         cell.contentConfiguration=content;cell.selectionStyle = .default
         cell.accessoryType = .disclosureIndicator;return cell

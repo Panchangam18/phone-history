@@ -38,9 +38,9 @@ while let line = readLine() {
                 "retained":try String(contentsOf:existing,encoding:.utf8)]
             print(String(decoding:try JSONSerialization.data(withJSONObject:output),as:UTF8.self))
         }
-        else if let references=command["references"] as? [Int] {
+        else if let references=command["line_references"] as? [[String:Int]] {
             let entry=HistoryEntry(date:Date(timeIntervalSince1970:1000),label:"Fixture",text:["Your document was saved successfully"])
-            let value=NaturalMemory.grounded(title:"Saved",summary:"You saved the document.",references:references,excerpts:NaturalMemory.excerpts([entry]))
+            let value=NaturalMemory.grounded(title:"Saved",summary:"You saved the document.",lines:references.map{(excerpt:$0["excerpt"] ?? 0,line:$0["line"] ?? 0)},excerpts:NaturalMemory.excerpts([entry]))
             print(String(decoding:try JSONSerialization.data(withJSONObject:["accepted":value != nil,"summary":value?.summary ?? "","quotes":value?.quotes ?? []]),as:UTF8.self))
         }
         else if let draft=command["draft"] as? [String:Any],let content=command["content"] as? [String],let support=draft["evidence"] as? [[String:Any]] {

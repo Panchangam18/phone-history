@@ -191,9 +191,11 @@ class DesktopExportTests(unittest.TestCase):
         prose="The model's interpretation is unchanged by quote validation."
         self.assertEqual(self.generated("Interpretation",prose,[{"excerpt":1,"quote":"saved successfully"}])["summary"],prose)
 
-    def test_model_references_copy_source_quotes_and_reject_missing_ids(self):
-        for refs,accepted in [([1],True),([999],False),([1,999],False),([],False)]:
-            self.worker.stdin.write(json.dumps({"references":refs})+"\n");self.worker.stdin.flush()
+    def test_model_line_references_copy_source_quotes_and_reject_missing_ids(self):
+        good={"excerpt":1,"line":1}
+        for refs,accepted in [([good],True),([{"excerpt":999,"line":1}],False),
+                              ([good,{"excerpt":1,"line":999}],False),([],False)]:
+            self.worker.stdin.write(json.dumps({"line_references":refs})+"\n");self.worker.stdin.flush()
             value=json.loads(self.worker.stdout.readline())
             self.assertEqual(value["accepted"],accepted)
             if accepted:
