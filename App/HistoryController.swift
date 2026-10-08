@@ -19,6 +19,9 @@ final class HistoryController: UIViewController {
     private var previewTask: Task<Void,Never>?
     private var refreshTask: Task<Void,Never>?
     private var connectionTask: Task<Void,Never>?
+    private var startStatusTask:Task<Void,Never>?
+    private var startStatusRevision=0
+    private var captureStartedAt:Date?
     private var backgroundObserver:NSObjectProtocol?
     private let configurationQueue=DispatchQueue(label:"PhoneHistory.Visibility",qos:.userInitiated)
 
@@ -40,17 +43,18 @@ final class HistoryController: UIViewController {
             Task { @MainActor in
                 guard UIApplication.shared.applicationState == .active,let self else { return }
                 if let connection=notification.object as? NEVPNConnection,connection !== self.manager?.connection { return }
-                self.refreshConnectionStatus()
+                self.refreshStatus()
             }
         }
         backgroundObserver=NotificationCenter.default.addObserver(forName:UIApplication.didEnterBackgroundNotification,object:nil,queue:.main) { [weak self] _ in
-            Task { @MainActor in self?.writeVisibility(false) }
+            Task { @MainActor in self?.writeVisibility(false);self?.startStatusTask?.cancel();self?.startStatusTask=nil }
         }
         writeVisibility(true)
         do { try importBootstrapTrust(); refreshStatus() }
         catch { showStatus(error.localizedDescription) }
     }
     deinit {
+        startStatusTask?.cancel()
         if let foregroundObserver { NotificationCenter.default.removeObserver(foregroundObserver) }
         if let backgroundObserver { NotificationCenter.default.removeObserver(backgroundObserver) }
         if let connectionObserver { NotificationCenter.default.removeObserver(connectionObserver) }
@@ -315,10 +319,32 @@ final class HistoryController: UIViewController {
             options["trialSeconds"] = NSNumber(value:min(600,max(60,seconds)))
         }
         try manager.connection.startVPNTunnel(options:options)
-        showStatus(nil); refreshConnectionStatus()
+        captureStartedAt=Date()
+        showStatus(nil);refreshStatus();monitorCaptureStart()
+    }
+    private func monitorCaptureStart() {
+        startStatusTask?.cancel();startStatusRevision+=1
+        let revision=startStatusRevision
+        startStatusTask=Task { [weak self] in
+            defer {if self?.startStatusRevision == revision {self?.startStatusTask=nil}}
+            for _ in 0..<45 {
+                do {try await Task.sleep(for:.seconds(1))} catch {return}
+                guard let self,UIApplication.shared.applicationState == .active else {return}
+                let value=await Task.detached(priority:.utility) {
+                    guard let folder=try? HistoryPaths.folder(),let data=try? Data(contentsOf:folder.appendingPathComponent("status.json")) else {return [String:Any]()}
+                    return (try? JSONSerialization.jsonObject(with:data)) as? [String:Any] ?? [:]
+                }.value
+                guard !Task.isCancelled else {return}
+                self.workerStatus=value;self.refreshConnectionStatus()
+                let updated=(value["updated_at"] as? NSNumber)?.doubleValue ?? 0
+                if self.manager?.connection.status == .connected,value["state"] as? String == "running",updated >= self.captureStartedAt?.timeIntervalSince1970 ?? 0 {return}
+            }
+            self?.captureStartedAt=nil;self?.refreshStatus()
+        }
     }
     @objc private func stopPressed() {
         guard !busy else { return }; busy = true;setCaptureState("Pausing");showStatus(nil)
+        startStatusTask?.cancel();startStatusTask=nil;captureStartedAt=nil
         Task {
             defer { busy = false }
             do {
@@ -396,11 +422,13 @@ final class HistoryController: UIViewController {
                 case .reasserting: state = "Reconnecting"; vpnState = "reasserting"
                 case .connected:
                     vpnState = "connected"
-                    state = age >= 90 ? "No recent capture update" : (raw == "running" ? "Capturing" : (raw == "reconnecting" ? "Reconnecting" : "Capture needs restart"))
+                    let updated=(value["updated_at"] as? NSNumber)?.doubleValue ?? 0
+                    if let captureStartedAt,Date().timeIntervalSince(captureStartedAt)<45,(updated<captureStartedAt.timeIntervalSince1970 || raw != "running") {state="Starting"}
+                    else {state = age >= 90 ? "No recent capture update" : (raw == "running" ? "Capturing" : (raw == "reconnecting" ? "Reconnecting" : "Capture needs restart"))}
                 @unknown default: state = "Unknown"; vpnState = "unknown"
                 }
                 let bytes = (value["bytes_today"] as? NSNumber)?.int64Value ?? 0
-                let hint = vpn == .disconnected || vpn == .invalid ? "Turn capture on to resume. Saved history stays on this iPhone." :
+                let hint = state == "Starting" ? "Connecting to this iPhone…" : vpn == .disconnected || vpn == .invalid ? "Turn capture on to resume. Saved history stays on this iPhone." :
                     (state == "No recent capture update" || state == "Capture needs restart" ? "Turn capture off and on to retry." : "Status refreshes when you return.")
                 updatePresentation(state:state,enabled:![NEVPNStatus.invalid,.disconnected,.disconnecting].contains(vpn),bytes:bytes)
                 showStatus(state == "Capturing" || state == "Paused" ? nil : hint)
@@ -454,6 +482,11 @@ final class HistoryController: UIViewController {
         try HistoryPaths.excludeFromBackup(destination)
         if let data = try? Data(contentsOf:folder.appendingPathComponent("status.json")) {
             try data.write(to:destination.appendingPathComponent("status.json"),options:[.atomic,.completeFileProtectionUntilFirstUserAuthentication])
+        }
+        for name in ["memory-status.json","last-exit.json","last-stop.json","desktop-server.json"] {
+            if let data=try? Data(contentsOf:folder.appendingPathComponent(name)) {
+                try data.write(to:destination.appendingPathComponent(name),options:[.atomic,.completeFileProtectionUntilFirstUserAuthentication])
+            }
         }
         let records = folder.appendingPathComponent("Records",isDirectory:true)
         if let files = try? FileManager.default.contentsOfDirectory(at:records,includingPropertiesForKeys:nil) {

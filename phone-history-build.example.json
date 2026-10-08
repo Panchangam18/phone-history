@@ -3,6 +3,7 @@
   "bundle_id": "com.yourname.phonehistory",
   "group": "group.com.yourname.phonehistory",
   "control_kind": "com.yourname.phonehistory.capture-toggle",
-  "build": "69",
-  "version": "1.0"
+  "build": "96",
+  "version": "1.0",
+  "encryption_export_code": ""
 }

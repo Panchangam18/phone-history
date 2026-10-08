@@ -36,10 +36,32 @@ class BuildSetupTests(unittest.TestCase):
                 self.assertEqual(info['CFBundleVersion'],'12')
                 self.assertTrue(info['CFBundleDisplayName'])
                 self.assertEqual(info['CFBundleShortVersionString'],'1.0')
+                self.assertNotIn('ITSAppUsesNonExemptEncryption',info)
+                self.assertNotIn('ITSEncryptionExportComplianceCode',info)
             project = (folder/'PhoneHistory.xcodeproj/project.pbxproj').read_text()
             self.assertIn('org.example.fixture.capture',project)
             self.assertIn('org.example.fixture.controls',project)
             self.assertNotIn('/Users/',project)
+
+    def test_export_approval_is_explicit_and_invalid_code_cannot_replace_project(self):
+        with tempfile.TemporaryDirectory() as root:
+            folder=Path(root)
+            shutil.copy2(BASE/'make_background_project.py',folder)
+            for name in ('App','Tunnel','Controls'): (folder/name).mkdir()
+            config={'encryption_export_code':'11111111-2222-4333-8444-555555555555'}
+            config_file=folder/'.phone-history-build.json'
+            config_file.write_text(json.dumps(config))
+            env={k:v for k,v in os.environ.items() if not k.startswith('PHONE_HISTORY_')}
+            command=['python3',str(folder/'make_background_project.py')]
+            subprocess.run(command,env=env,check=True,stdout=subprocess.DEVNULL)
+            info_file=folder/'App/History-Info.plist'
+            before=info_file.read_bytes()
+            info=plistlib.loads(before)
+            self.assertIs(info['ITSAppUsesNonExemptEncryption'],True)
+            self.assertEqual(info['ITSEncryptionExportComplianceCode'],config['encryption_export_code'])
+            config_file.write_text(json.dumps({'encryption_export_code':'not-an-approval-code'}))
+            self.assertNotEqual(subprocess.run(command,env=env,capture_output=True).returncode,0)
+            self.assertEqual(info_file.read_bytes(),before)
 
     def fixture(self, folder):
         key = Ed25519PrivateKey.generate()

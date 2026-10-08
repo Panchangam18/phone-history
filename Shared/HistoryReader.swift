@@ -18,12 +18,27 @@ struct HistoryReadResult: Sendable {
 enum HistoryReader {
     private struct State { var label = ""; var text: [String] = []; var dictionary: [String] = [] }
 
+    // Resolve only the requested references. Reconstruct delta state in order,
+    // but do not retain or hash thousands of unrelated observations.
+    static func readIDs(_ files:[URL],ids:Set<String>) throws -> HistoryReadResult {
+        var remaining=ids;var entries:[HistoryEntry]=[];var skipped=0
+        for file in files.sorted(by:{$0.lastPathComponent > $1.lastPathComponent}) {
+            try Task.checkCancellation()
+            guard !remaining.isEmpty else {break}
+            let result=try read([file],limit:remaining.count,includeNoise:true,ids:remaining)
+            entries+=result.entries;skipped+=result.skippedRows
+            remaining.subtract(result.entries.map{$0.id})
+        }
+        return HistoryReadResult(entries:entries.sorted{$0.date>$1.date},skippedRows:skipped)
+    }
+
     static func readNewest(_ files:[URL],limit:Int=100,since:Date?=nil,kind:String="all",includeNoise:Bool=false) throws -> HistoryReadResult {
         var entries:[HistoryEntry]=[];var skipped=0
         for file in files.sorted(by:{
             let a=Double($0.lastPathComponent.dropFirst(8).split(separator:"-").first?.split(separator:".").first ?? "") ?? 0,b=Double($1.lastPathComponent.dropFirst(8).split(separator:"-").first?.split(separator:".").first ?? "") ?? 0
             return a == b ? $0.lastPathComponent > $1.lastPathComponent:a>b
         }) {
+            try Task.checkCancellation()
             let result=try read([file],limit:max(1,limit-entries.count),since:since,kind:kind,includeNoise:includeNoise)
             entries+=result.entries;skipped+=result.skippedRows
             if entries.count>=limit { break }
@@ -37,10 +52,11 @@ enum HistoryReader {
             return seen.insert(m.scope+"|"+String(Int(m.start))).inserted
         }.sorted{$0.date>$1.date}
     }
-    static func read(_ files: [URL], limit: Int = 100, since: Date? = nil,kind:String="all",includeNoise:Bool=false) throws -> HistoryReadResult {
+    static func read(_ files: [URL], limit: Int = 100, since: Date? = nil,kind:String="all",includeNoise:Bool=false,ids:Set<String>?=nil) throws -> HistoryReadResult {
         var entries: [HistoryEntry] = []
         var skipped = 0
         for file in files.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
+            try Task.checkCancellation()
             var states: [Int:State] = [:]
             var version = 0
             var epoch: Double = 0
@@ -48,8 +64,10 @@ enum HistoryReader {
             let cursor=(try? JSONSerialization.jsonObject(with:Data(contentsOf:cursorURL))) as? [String:Double] ?? [:]
             let data = try Data(contentsOf: file)
             for line in data.split(separator: 10) {
+                try Task.checkCancellation()
                 guard let row = (try? JSONSerialization.jsonObject(with: Data(line))) as? [String:Any] else { skipped += 1; continue }
                 if row["kind"] as? String == "memory" {
+                    if let ids,let id=row["id"] as? String,!ids.contains(id) {continue}
                     guard let memory=MemoryRecord.decode(row) else {skipped+=1;continue}
                     if kind == "memories" {
                         if (memory.format ?? 0) < 8 {continue}
@@ -63,6 +81,7 @@ enum HistoryReader {
                     }
                     continue
                 }
+                if kind == "memories" {continue}
                 if let value = row["v"] as? Int {
                     version = value; epoch = (row["t"] as? NSNumber)?.doubleValue ?? 0
                     states.removeAll(); continue
@@ -86,11 +105,14 @@ enum HistoryReader {
                 }
                 states[pid] = state
                 guard !state.text.isEmpty,includeNoise || !ContextText.content(state.text).isEmpty else { continue }
-                if kind == "memories" {continue}
                 if let since, epoch+Double(seconds) < since.timeIntervalSince1970 { continue }
-                let legacy=SHA256.hash(data:Data("\(pid)|\(epoch+Double(seconds))|\(state.text.joined(separator:"|"))".utf8)).map{String(format:"%02x",$0)}.joined()
+                if let ids,let id=row["id"] as? String,!ids.contains(id) {continue}
+                let id:String
+                if let stored=row["id"] as? String {id=stored}
+                else {id="legacy-"+SHA256.hash(data:Data("\(pid)|\(epoch+Double(seconds))|\(state.text.joined(separator:"|"))".utf8)).map{String(format:"%02x",$0)}.joined()}
+                if let ids,!ids.contains(id) {continue}
                 entries.append(HistoryEntry(date:Date(timeIntervalSince1970:epoch+Double(seconds)),
-                    label:state.label.isEmpty ? "App context" : state.label, text:state.text,id:row["id"] as? String ?? "legacy-"+legacy,source:row["source"] as? String ?? "AX"))
+                    label:state.label.isEmpty ? "App context" : state.label, text:state.text,id:id,source:row["source"] as? String ?? "AX"))
                 if entries.count > max(1,limit)*2 { entries.removeFirst(entries.count-max(1,limit)) }
             }
         }

@@ -1,6 +1,6 @@
 """Generate the small native app/extension project; Xcode manages provisioning."""
 from pathlib import Path
-import hashlib, json, os, plistlib, re
+import hashlib, json, os, plistlib, re, uuid
 
 BASE = Path(__file__).resolve().parent
 config_path = BASE/'.phone-history-build.json'
@@ -11,8 +11,11 @@ TEAM = option('team')
 BUNDLE = option('bundle_id','com.example.phonehistory')
 GROUP = option('group','group.'+BUNDLE)
 CONTROL_KIND = option('control_kind',BUNDLE+'.capture-toggle')
-BUILD = option('build','93')
+BUILD = option('build','96')
 VERSION = option('version','1.0')
+ENCRYPTION_EXPORT_CODE = option('encryption_export_code')
+if ENCRYPTION_EXPORT_CODE:
+    ENCRYPTION_EXPORT_CODE = str(uuid.UUID(ENCRYPTION_EXPORT_CODE))
 for name,value in [('bundle_id',BUNDLE),('group',GROUP),('control_kind',CONTROL_KIND)]:
     if not re.fullmatch(r'[A-Za-z0-9.-]+',value): raise ValueError('Invalid '+name)
 if not BUILD.isdigit(): raise ValueError('Build must be an integer')
@@ -41,6 +44,9 @@ app_info = {'CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)', 'CFBundleDispla
     'NSLocalNetworkUsageDescription':'Let desktops you approve read encrypted phone history over the same Wi-Fi.',
     'UIFileSharingEnabled':True,'LSSupportsOpeningDocumentsInPlace':True}
 app_info.update(runtime_info)
+if ENCRYPTION_EXPORT_CODE:
+    app_info.update(ITSAppUsesNonExemptEncryption=True,
+                    ITSEncryptionExportComplianceCode=ENCRYPTION_EXPORT_CODE)
 (BASE/'App/History-Info.plist').write_bytes(plistlib.dumps(app_info))
 extension_info = {'CFBundleIdentifier':'$(PRODUCT_BUNDLE_IDENTIFIER)','CFBundleName':'PhoneHistoryCapture','CFBundleDisplayName':'Phone History Capture',
     'CFBundleExecutable':'$(EXECUTABLE_NAME)','CFBundlePackageType':'XPC!', 'CFBundleVersion':BUILD,'CFBundleShortVersionString':VERSION,

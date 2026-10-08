@@ -37,6 +37,8 @@ Build the `PhoneHistory` scheme for your registered iPhone. The app and both ext
 
 Configuration can also come from `PHONE_HISTORY_TEAM`, `PHONE_HISTORY_BUNDLE_ID`, `PHONE_HISTORY_GROUP`, `PHONE_HISTORY_CONTROL_KIND`, `PHONE_HISTORY_BUILD` and `PHONE_HISTORY_VERSION`. The generated Xcode project, entitlements and Info plists are ignored. Unsigned source checks can use `CODE_SIGNING_ALLOWED=NO`; neutral defaults cannot provision a real device. Keep identifiers stable when updating an existing installation so its container and approvals remain accessible.
 
+For distribution, set `encryption_export_code` (or `PHONE_HISTORY_ENCRYPTION_EXPORT_CODE`) only to the code Apple issued for your approved encryption documentation. This adds the non-exempt encryption declaration and approved code to the app's Info.plist. No approval or exemption is assumed when the field is empty; forked apps must resolve their own export compliance.
+
 ### One-time developer trust import
 
 The app needs a remote developer-pairing record created for **that phone by its own trusted Mac**. Ordinary USB Lockdown pairing is a different record. Obtain the remote record using a compatible developer-service pairing client, such as [pymobiledevice3](https://github.com/doronz88/pymobiledevice3). Acquisition remains a developer step. The app now guides trust import, storage, VPN approval, capture readiness and optional desktop pairing; see [the setup guide](docs/SETUP.md).

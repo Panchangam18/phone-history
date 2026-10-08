@@ -50,7 +50,7 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
                 phone_history_set_vision_reader(historyRecognizeFrame)
                 let history = folder.appendingPathComponent("Records", isDirectory: true)
                 let status = folder.appendingPathComponent("status.json")
-                let worker = Thread {
+                let worker = Thread { [weak self] in
                     let pointer = pairing.path.withCString { pair in history.path.withCString { output in
                         status.path.withCString { phone_history_run_background(pair,output,$0) }
                     }}
@@ -65,6 +65,11 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
                                 try? diagnostic.write(to:status,options:[.atomic,.completeFileProtectionUntilFirstUserAuthentication])
                             }
                         }
+                    }
+                    // A dead reader must not leave an apparently connected VPN.
+                    // Let the system reconnect through the configured on-demand rule.
+                    if let self,!self.isStopped,options?["trialSeconds"] == nil {
+                        self.cancelTunnelWithError(NSError(domain:"PhoneHistory",code:10,userInfo:[NSLocalizedDescriptionKey:"The capture worker exited. Reconnect capture to resume."]))
                     }
                 }
                 worker.stackSize = 8*1024*1024
@@ -161,6 +166,9 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     }
     override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
         lock.lock(); stopped = true; starting = false; let current = Array(connections.values); connections.removeAll(); lock.unlock()
+        if let folder=try? HistoryPaths.folder(),let data=try? JSONSerialization.data(withJSONObject:["reason":reason.rawValue,"reason_name":String(describing:reason),"stopped_at":Date().timeIntervalSince1970]) {
+            try? data.write(to:folder.appendingPathComponent("last-stop.json"),options:[.atomic,.completeFileProtectionUntilFirstUserAuthentication])
+        }
         CaptureControlState.update(enabled: false)
         phone_history_stop()
         if let engine=memoryEngine { Task { await engine.stop() } };memoryEngine=nil
