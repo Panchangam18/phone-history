@@ -1,6 +1,6 @@
 # App Store preparation
 
-Status checked 2026-10-08: Apple approved the encryption documentation, and build 69 no longer shows Missing Compliance. Build 95 (the polished UI and onboarding) archived, uploaded and passed all 45 tests. Build 96 additionally fixes stale capture-start status, stale History-tab loads and expensive evidence reference lookup; it archived successfully and passed all 46 tests. Its App Store upload succeeded; Apple processing and TestFlight verification are in progress. The development build installed and launched on the physical iPhone, with a fresh running worker and available model. Version 1.0 is not submitted yet.
+Status checked 2026-10-08: Apple approved the encryption documentation, and build 69 no longer shows Missing Compliance. Build 95 (the polished UI and onboarding) archived, uploaded and passed all 45 tests. Build 96 additionally fixes stale capture-start status, stale History-tab loads and expensive evidence reference lookup; it archived successfully and passed all 46 tests. Its App Store upload succeeded, Apple processing completed, and build 96 is saved as the version 1.0 candidate. Internal TestFlight group Release verification shows build 96 as Testing, with the account holder invited; actual TestFlight installation and capture verification remain pending. The development build installed and launched on the physical iPhone, with a fresh running worker and available model. The user confirmed Capturing updates without pull-to-refresh and Memories/Evidence navigation is smooth. Version 1.0 is not submitted yet.
 
 The development phone stopped capturing overnight at 01:20. Its VPN was disconnected with on-demand disabled; restarting restored fresh worker updates. No contemporaneous stop/crash reason was retained, so the cause is not established. Build 96 records future provider stop reasons and cancels a tunnel when its reader unexpectedly exits, allowing the configured on-demand reconnect to act. This is not proof of uninterrupted overnight capture.
 
@@ -58,7 +58,7 @@ The reviewer needs working first-time setup on their own device. An imported tru
 
 ## Remaining submission fields and checks
 
-- Replace build 69 with build 96 after processing, and verify the production-signed build through internal TestFlight; development installation alone does not establish production capture behavior.
+- Build 96 has replaced build 69 in the saved version 1.0 candidate. Install and verify the production-signed build through internal TestFlight; development installation alone does not establish production capture behavior. Updated synthetic screenshots and reviewer setup notes are saved.
 - Current iOS compatibility, recipient setup, reboot/reconnect behavior and longer energy checks.
 - The account holder's affirmative content-rights declaration is saved; supporting authorization has not been independently established. Any accessibility claims must reflect actual verification.
 - The account holder selected non-trader and DSA compliance is active. Other regional requirements remain applicable; selecting worldwide storefronts does not itself satisfy them.
