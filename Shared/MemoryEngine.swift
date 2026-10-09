@@ -1,26 +1,6 @@
 import Foundation
 import FoundationModels
 
-@Generable
-struct GeneratedMemorySupport:Sendable {
-    @Guide(description:"Number of the SCREEN excerpt containing the supporting quote.",.range(1...12))
-    var excerpt:Int
-    @Guide(description:"Line number within that SCREEN containing the specific subject or explicit result supporting the summary. Navigation controls do not support an activity.",.range(1...40))
-    var line:Int
-}
-
-@Generable
-struct GeneratedMemory:Sendable {
-    @Guide(description:"Brief notes naming specific subjects from the beginning AND end of the observations. Separate unrelated authors and activities. Ignore numbers and controls.")
-    var grounding:String
-    @Guide(description:"1–3 short sentences addressed to you, describing the supported activity and concrete subjects. Cover distinct activities across the sequence. Do not include ratings, scores, game counts, duration or unsupported actions. Avoid vague category recaps. At most 1000 UTF-8 bytes; empty if only clutter is supported.")
-    var summary:String
-    @Guide(description:"Short title naming the specific subjects of the summary. At most 160 UTF-8 bytes; empty if no meaningful activity is supported.")
-    var title:String
-    @Guide(description:"Choose 1–4 SCREEN and line references directly supporting the subjects in your summary. Cite content, not dates, controls or account statistics. Empty if no meaningful activity is supported.",.maximumCount(4))
-    var support:[GeneratedMemorySupport]
-}
-
 actor MemoryEngine {
     private let folder:URL
     private let submit:@Sendable (String)->Bool
@@ -65,16 +45,16 @@ actor MemoryEngine {
             let memories=entries.compactMap{$0.memory}
             let cursorURL=folder.appendingPathComponent("memory-cursor.json")
             var cursor=(try? JSONSerialization.jsonObject(with:Data(contentsOf:cursorURL))) as? [String:Double] ?? [:]
-            if cursor["format_revision"] != 17 {cursor=[:]}
+            if cursor["format_revision"] != 18 {cursor=[:]}
             let raw=entries.filter{$0.memory == nil && !NaturalMemory.clean($0).isEmpty && $0.date.timeIntervalSince1970>=now-7200}.sorted{$0.date<$1.date}
             var scope="10min";var input:[HistoryEntry]=[];var start=0.0;var end=0.0
-            let rollup=memories.filter{$0.format == 17 && $0.scope == "10min" && $0.end>(cursor["rollup_end"] ?? now-21600) && floor($0.start/21600)*21600+21600<=now}.sorted{$0.start<$1.start}.first
+            let rollup=memories.filter{$0.format == 18 && $0.scope == "10min" && $0.end>(cursor["rollup_end"] ?? now-21600) && floor($0.start/21600)*21600+21600<=now}.sorted{$0.start<$1.start}.first
             if force {
                 start=now-600;end=now
                 input=raw.filter{$0.date.timeIntervalSince1970>=start && $0.date.timeIntervalSince1970<=end}
             } else if let first=rollup {
                 scope="6h";start=floor(first.start/21600)*21600;end=start+21600
-                let children=entries.compactMap{$0.memory}.filter{$0.format == 17 && $0.scope == "10min" && $0.start>=start && $0.end<=end}
+                let children=entries.compactMap{$0.memory}.filter{$0.format == 18 && $0.scope == "10min" && $0.start>=start && $0.end<=end}
                 // Re-ground rollups in captured observations, not earlier model prose.
                 // A mistaken ten-minute interpretation must not become source truth.
                 let ids=Set(children.flatMap{$0.sources})
@@ -95,7 +75,6 @@ actor MemoryEngine {
             let supplied=NaturalMemory.representative(input)
             guard !supplied.isEmpty else {status("collecting",details:["model_available":true]);return}
             let excerpts=NaturalMemory.excerpts(supplied)
-            let evidence=NaturalMemory.excerptPrompt(excerpts)
             status("summarizing",details:["scope":scope,"source_count":supplied.count,"model_available":true])
             if phone_history_native_footprint(0)>30*1024*1024 {
                 retryAfter=Date().addingTimeInterval(60);status("deferred",details:["evidence_preserved":true,"model_available":true,"reason":"memory_headroom"]);return
@@ -103,14 +82,13 @@ actor MemoryEngine {
             var natural:MemoryDraft?=nil
             var failure="invalid_output_or_quotes"
             do {
-                let session=LanguageModelSession(instructions:MemoryPrompts.generation)
-                let request=Task {try await session.respond(to:MemoryPrompts.request(scope:scope,evidence:evidence),generating:GeneratedMemory.self,options:GenerationOptions(sampling:.greedy,maximumResponseTokens:600)).content}
+                let request=Task {try await MemoryGeneration.generate(scope:scope,excerpts:excerpts)}
                 generation=request
                 let watchdog=Task {do {try await Task.sleep(for:.seconds(45));request.cancel()} catch {}}
                 defer {watchdog.cancel();generation=nil}
                 let value=try await request.value
                 if value.title.isEmpty,value.summary.isEmpty,value.support.isEmpty {
-                    var next=cursor;next["format_revision"]=17
+                    var next=cursor;next["format_revision"]=18
                     next["abstained_"+scope+"_"+String(Int(start))]=end
                     if scope == "10min" {next["window_"+String(Int(start))]=end} else {next["rollup_end"]=end}
                     try JSONSerialization.data(withJSONObject:next).write(to:cursorURL,options:[.atomic,.completeFileProtectionUntilFirstUserAuthentication])
@@ -149,12 +127,12 @@ actor MemoryEngine {
             }
             let record=MemoryRecord(id:"m-"+UUID().uuidString,scope:scope,start:start,end:end,
                 title:draft.title,summary:draft.summary,facts:draft.quotes,sources:supplied.map{$0.id},
-                apps:Array(Set(supplied.filter{$0.appIdentityVerified && ContextText.usefulLabel($0.label)}.map{MemoryText.bounded($0.label,bytes:80)})).sorted(),partial:true,evidenceChecked:true,generatedAt:Date().timeIntervalSince1970,model:"apple-system-language-model",format:17,activityInferred:true,supportSources:draft.supportSources)
+                apps:Array(Set(supplied.filter{$0.appIdentityVerified && ContextText.usefulLabel($0.label)}.map{MemoryText.bounded($0.label,bytes:80)})).sorted(),partial:true,evidenceChecked:true,generatedAt:Date().timeIntervalSince1970,model:"apple-system-language-model",format:18,activityInferred:true,supportSources:draft.supportSources)
             let row=String(decoding:try record.rowData(),as:UTF8.self)
             let acknowledged=await Task.detached(priority:.utility) { self.submit(row) }.value
             guard !stopped, !Task.isCancelled else {return}
             guard acknowledged else { throw DesktopAccess.AccessError.invalidRequest }
-            var next=cursor;next["format_revision"]=17
+            var next=cursor;next["format_revision"]=18
             if scope == "10min" { next["window_"+String(Int(start))]=end }
             else { next["rollup_end"]=end }
             try JSONSerialization.data(withJSONObject:next).write(to:cursorURL,options:[.atomic,.completeFileProtectionUntilFirstUserAuthentication])

@@ -11,7 +11,7 @@ TEAM = option('team')
 BUNDLE = option('bundle_id','com.example.phonehistory')
 GROUP = option('group','group.'+BUNDLE)
 CONTROL_KIND = option('control_kind',BUNDLE+'.capture-toggle')
-BUILD = option('build','97')
+BUILD = option('build','98')
 VERSION = option('version','1.0')
 ENCRYPTION_EXPORT_CODE = option('encryption_export_code')
 if ENCRYPTION_EXPORT_CODE:
@@ -58,10 +58,10 @@ controls_info = dict(extension_info, CFBundleName='PhoneHistoryControls', CFBund
     'NSExtensionPointIdentifier':'com.apple.widgetkit-extension'})
 (BASE/'Controls/Info.plist').write_bytes(plistlib.dumps(controls_info))
 
-app_sources = ['Shared/MemoryPrompts.swift','Shared/BuildConfiguration.swift','Shared/NaturalMemory.swift','Shared/ContextText.swift','Shared/MemoryRecord.swift','App/HistoryApp.swift','App/HistoryController.swift','App/HistoryListController.swift',
+app_sources = ['App/SummaryReplay.swift','Shared/MemoryGeneration.swift','Shared/MemoryPrompts.swift','Shared/BuildConfiguration.swift','Shared/NaturalMemory.swift','Shared/ContextText.swift','Shared/MemoryRecord.swift','App/HistoryApp.swift','App/HistoryController.swift','App/HistoryListController.swift',
     'App/SetupState.swift','App/DeveloperTrust.swift','App/SetupController.swift','App/HistorySettingsController.swift','App/HistoryUI.swift','App/HistoryAboutController.swift','App/DesktopAccessController.swift','Shared/HistoryPaths.swift','Shared/HistoryReader.swift',
     'Shared/DesktopAccess.swift','Shared/StoragePolicy.swift','Shared/HistoryOffload.swift','Tunnel/DesktopExportServer.swift','Shared/CaptureControlState.swift','Shared/SetCaptureIntent.swift']
-ext_sources = ['Shared/MemoryPrompts.swift','Shared/BuildConfiguration.swift','Shared/NaturalMemory.swift','Shared/ContextText.swift','Shared/MemoryUsage.m','Shared/MemoryRecord.swift','Shared/MemoryEngine.swift','Tunnel/FrameObservation.swift','Tunnel/PacketTunnelProvider.swift','Tunnel/TunnelConnection.swift','Shared/HistoryPaths.swift',
+ext_sources = ['Shared/MemoryGeneration.swift','Shared/MemoryPrompts.swift','Shared/BuildConfiguration.swift','Shared/NaturalMemory.swift','Shared/ContextText.swift','Shared/MemoryUsage.m','Shared/MemoryRecord.swift','Shared/MemoryEngine.swift','Tunnel/FrameObservation.swift','Tunnel/PacketTunnelProvider.swift','Tunnel/TunnelConnection.swift','Shared/HistoryPaths.swift',
     'Shared/HistoryReader.swift','Shared/DesktopAccess.swift','Shared/StoragePolicy.swift','Shared/HistoryOffload.swift','Tunnel/DesktopExportServer.swift','Shared/CaptureControlState.swift']
 controls_sources = ['Shared/BuildConfiguration.swift','Controls/HistoryControls.swift','Shared/HistoryPaths.swift','Shared/CaptureControlState.swift','Shared/SetCaptureIntent.swift']
 source_refs = {}
@@ -97,7 +97,7 @@ for target,bundle,info,ent in [('app',BUNDLE,'App/History-Info.plist','App/Histo
     if target=='controls': values.pop('SWIFT_OBJC_BRIDGING_HEADER',None)
     ids = []
     for name in ['Debug','Release']:
-        ids.append(add(target+'-'+name,'{isa = XCBuildConfiguration; buildSettings = '+settings(values)+'; name = '+name+';}'))
+        ids.append(add(target+'-'+name,'{isa = XCBuildConfiguration; buildSettings = '+settings(dict(values,SWIFT_ACTIVE_COMPILATION_CONDITIONS='DEBUG') if name=='Debug' else values)+'; name = '+name+';}'))
     configs[target] = add(target+'-configs','{isa = XCConfigurationList; buildConfigurations = ('+','.join(ids)+',); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;}')
 
 phases = {}

@@ -13,7 +13,7 @@ Phone History saves bounded changes in visible text, groups them into ten-minute
 1. The embedded packet-tunnel worker connects to the phone's developer services using its own imported pairing record. After bootstrap, capture runs on the phone without a Mac, cloud relay or separate VPN app.
 2. Temporary screen frames are processed by native Vision OCR every 10–30 seconds, with generic accessibility metadata and text fallback. Frames are discarded. There is no website-specific or app-specific parser.
 3. Repeated text is deduplicated and changes are bounded to about 2 KiB per observation. Clock-only and routine interface text are filtered.
-4. When the Apple system model is available, it writes a title and concise activity summary from bounded, line-numbered screen excerpts in one pass. Unverified process labels are excluded from its input. The prompt asks for concrete subjects, supported outcomes and uncertainty, without fixed activity wording. The model selects supporting lines; the app copies them verbatim and links them to their observations instead of taking each screen's opening text. Code validates references and size limits; accepted model prose is stored unchanged. Six-hour rollups resolve captured observations rather than reusing earlier AI prose as source truth. A rejected or abstaining generation creates no new memory. These checks do not establish semantic accuracy; quality replays remain a separate release check.
+4. When the Apple system model is available, it writes a title and concise activity summary from bounded, line-numbered screen excerpts in one pass. Unverified process labels are excluded from its input. The prompt asks for concrete subjects, supported outcomes and uncertainty, without fixed activity wording. The model identifies support before composing its title and prose. It selects supporting lines; the app copies them verbatim and links them to their observations instead of taking each screen's opening text. Code validates references and size limits; accepted model prose is stored unchanged. Six-hour rollups resolve captured observations rather than reusing earlier AI prose as source truth. A rejected or abstaining generation creates no new memory. These checks do not establish semantic accuracy; quality replays remain a separate release check.
 5. The same local store supplies the app and authenticated desktop reads. Desktop access is optional.
 
 History is sampled and partial. It is **not** a tap/keystroke log or a complete accessibility tree. An inferred “You browsed…” memory describes likely activity from the sequence, not verified input events. Displayed text, OCR and generated summaries can be wrong. A page title does not prove watching, sending, buying or playing. Protected content and brief screens may be missed.
@@ -81,3 +81,19 @@ See [PRIVACY.md](PRIVACY.md), [SECURITY.md](SECURITY.md) and [CONTRIBUTING.md](C
 Phone History's original code is [MIT](LICENSE). **Its local packet transport uses code from [LocalDevVPN](https://github.com/jkcoxson/LocalDevVPN), by Stossy11 and the SideStore Team, under the [StosVPN License](ThirdParty/LocalDevVPN-LICENSE).** That license retains attribution and branding conditions; those parts are not relicensed under MIT.
 
 The developer-service client uses [idevice](https://github.com/jkcoxson/idevice), by Jackson Coxson, under MIT. A patched source snapshot is vendored so builds do not depend on a private workspace. Versions and local changes are documented in [ThirdParty/README.md](ThirdParty/README.md). Other Cargo/Python dependencies retain their own licenses.
+
+### Local model quality checks
+
+Summary wording is entirely model-authored. `Shared/MemoryPrompts.swift` and the
+model's guide descriptions control its style; no runtime verb mapping, sentence
+substitution or activity-specific template rewrites the response. Source-reference
+checks are structural and do not establish semantic correctness.
+
+A Debug build accepts `--summary-replay` to evaluate explicit local fixtures from
+`Documents/summary-replay/*-input.json`. Each fixture uses the desktop evidence
+response shape (`entries` with `timestamp`, `text`, `id` and `source`). Results are
+written beside it. This invokes the same `MemoryGeneration` function used by the
+worker, makes no network request, and creates no history records. The replay
+folder is excluded from backups. This diagnostic is excluded from Release builds;
+use fictional fixtures for shared tests and keep personal replays private. Mac
+model output alone is not an iPhone runtime check.

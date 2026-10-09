@@ -63,6 +63,15 @@ final class HistoryController: UIViewController {
         super.viewDidAppear(animated)
         if !started {
             started = true
+            #if DEBUG
+            if CommandLine.arguments.contains("--summary-replay") {
+                let background=UIApplication.shared.beginBackgroundTask(withName:"Summary replay")
+                Task.detached(priority:.utility) {
+                    await SummaryReplay.run()
+                    await MainActor.run {UIApplication.shared.endBackgroundTask(background)}
+                }
+            }
+            #endif
             #if targetEnvironment(simulator)
             if CommandLine.arguments.contains("--ui-export") {
                 Task { @MainActor in
