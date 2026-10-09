@@ -1,6 +1,6 @@
 # App Store preparation
 
-Build 99 uploaded successfully on 2026-10-08 at 11:44 p.m. Pacific and Apple began processing it. Private TestFlight group assignment and installation have not yet been verified. It does not replace the submitted build 98. Its Release archive passes signature verification and all 49 tests pass.
+Build 99 uploaded successfully on 2026-10-08 at 11:44 p.m. Pacific and Apple began processing it. Apple processing completed, and App Store Connect confirms build 99 is Testing in the existing private Release verification group with one internal tester. Focused test notes are saved. Installation of build 99 on the phone has not yet been verified. It does not replace the submitted build 98. Its Release archive passes signature verification and all 49 tests pass.
 
 Build 99 adds raw-evidence search with filtering before the result cap, timestamp/ID pagination, and direct source-ID lookup without the former 20,000-record display cutoff. The desktop skill uses raw search for specific recall. Protocol tests cover older matches, delta reconstruction, overlapping files, equal-timestamp pagination, revocation and live-only access. A separate encrypted MCP regression retrieved a subject from retained phone observations with 150 newer unrelated records ahead of it; this used a disposable local server and copied observations, not an updated live phone. Personal inputs and outputs remain in the ignored build folder.
 
