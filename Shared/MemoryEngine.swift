@@ -45,16 +45,16 @@ actor MemoryEngine {
             let memories=entries.compactMap{$0.memory}
             let cursorURL=folder.appendingPathComponent("memory-cursor.json")
             var cursor=(try? JSONSerialization.jsonObject(with:Data(contentsOf:cursorURL))) as? [String:Double] ?? [:]
-            if cursor["format_revision"] != 18 {cursor=[:]}
+            if cursor["format_revision"] != 19 {cursor=[:]}
             let raw=entries.filter{$0.memory == nil && !NaturalMemory.clean($0).isEmpty && $0.date.timeIntervalSince1970>=now-7200}.sorted{$0.date<$1.date}
             var scope="10min";var input:[HistoryEntry]=[];var start=0.0;var end=0.0
-            let rollup=memories.filter{$0.format == 18 && $0.scope == "10min" && $0.end>(cursor["rollup_end"] ?? now-21600) && floor($0.start/21600)*21600+21600<=now}.sorted{$0.start<$1.start}.first
+            let rollup=memories.filter{$0.format == 19 && $0.scope == "10min" && $0.end>(cursor["rollup_end"] ?? now-21600) && floor($0.start/21600)*21600+21600<=now}.sorted{$0.start<$1.start}.first
             if force {
                 start=now-600;end=now
                 input=raw.filter{$0.date.timeIntervalSince1970>=start && $0.date.timeIntervalSince1970<=end}
             } else if let first=rollup {
                 scope="6h";start=floor(first.start/21600)*21600;end=start+21600
-                let children=entries.compactMap{$0.memory}.filter{$0.format == 18 && $0.scope == "10min" && $0.start>=start && $0.end<=end}
+                let children=entries.compactMap{$0.memory}.filter{$0.format == 19 && $0.scope == "10min" && $0.start>=start && $0.end<=end}
                 // Re-ground rollups in captured observations, not earlier model prose.
                 // A mistaken ten-minute interpretation must not become source truth.
                 let ids=Set(children.flatMap{$0.sources})
@@ -88,7 +88,7 @@ actor MemoryEngine {
                 defer {watchdog.cancel();generation=nil}
                 let value=try await request.value
                 if value.title.isEmpty,value.summary.isEmpty,value.support.isEmpty {
-                    var next=cursor;next["format_revision"]=18
+                    var next=cursor;next["format_revision"]=19
                     next["abstained_"+scope+"_"+String(Int(start))]=end
                     if scope == "10min" {next["window_"+String(Int(start))]=end} else {next["rollup_end"]=end}
                     try JSONSerialization.data(withJSONObject:next).write(to:cursorURL,options:[.atomic,.completeFileProtectionUntilFirstUserAuthentication])
@@ -127,12 +127,12 @@ actor MemoryEngine {
             }
             let record=MemoryRecord(id:"m-"+UUID().uuidString,scope:scope,start:start,end:end,
                 title:draft.title,summary:draft.summary,facts:draft.quotes,sources:supplied.map{$0.id},
-                apps:Array(Set(supplied.filter{$0.appIdentityVerified && ContextText.usefulLabel($0.label)}.map{MemoryText.bounded($0.label,bytes:80)})).sorted(),partial:true,evidenceChecked:true,generatedAt:Date().timeIntervalSince1970,model:"apple-system-language-model",format:18,activityInferred:true,supportSources:draft.supportSources)
+                apps:Array(Set(supplied.filter{$0.appIdentityVerified && ContextText.usefulLabel($0.label)}.map{MemoryText.bounded($0.label,bytes:80)})).sorted(),partial:true,evidenceChecked:true,generatedAt:Date().timeIntervalSince1970,model:"apple-system-language-model",format:19,activityInferred:true,supportSources:draft.supportSources)
             let row=String(decoding:try record.rowData(),as:UTF8.self)
             let acknowledged=await Task.detached(priority:.utility) { self.submit(row) }.value
             guard !stopped, !Task.isCancelled else {return}
             guard acknowledged else { throw DesktopAccess.AccessError.invalidRequest }
-            var next=cursor;next["format_revision"]=18
+            var next=cursor;next["format_revision"]=19
             if scope == "10min" { next["window_"+String(Int(start))]=end }
             else { next["rollup_end"]=end }
             try JSONSerialization.data(withJSONObject:next).write(to:cursorURL,options:[.atomic,.completeFileProtectionUntilFirstUserAuthentication])

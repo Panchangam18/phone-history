@@ -303,6 +303,27 @@ def evidence(path, ids, host=None):
     return exchange(state,{"request_id":str(uuid.uuid4()),"issued_at":now,"operation":"evidence","since":now-7*86400+5,"limit":40,"ids":ids},host or state.get("host",""))
 
 
+def search(path, query="", minutes=1440, limit=20, before=None, before_id=None, host=None):
+    if not isinstance(query,str) or len(query.encode("utf-8"))>160:
+        raise ValueError("Query must be text of at most 160 UTF-8 bytes")
+    if isinstance(minutes,bool) or not isinstance(minutes,(int,float)) or not 1<=minutes<=10080:
+        raise ValueError("minutes must be between 1 and 10080")
+    if isinstance(limit,bool) or not isinstance(limit,int) or not 1<=limit<=100:
+        raise ValueError("limit must be between 1 and 100")
+    now=time.time();since=now-minutes*60+(5 if minutes==10080 else 0)
+    request={"request_id":str(uuid.uuid4()),"issued_at":now,"operation":"search","since":since,"limit":limit,"query":query}
+    if before is not None:
+        if isinstance(before,bool) or not isinstance(before,(int,float)) or not since<=before<=now:
+            raise ValueError("before must be a timestamp within the requested interval")
+        request["before"]=before
+    if before_id is not None:
+        if before is None or not isinstance(before_id,str) or not before_id or len(before_id.encode("utf-8"))>80:
+            raise ValueError("before_id requires before and a valid evidence ID")
+        request["before_id"]=before_id
+    state=load_state(path)
+    return exchange(state,request,host or state.get("host",""))
+
+
 def screenshot_content(value):
     shot = value.get("screenshot", {})
     if shot.get("available") is not True:
@@ -323,6 +344,9 @@ def screenshot_content(value):
 
 
 TOOLS = [
+    {"name":"phone_history_search","description":"Search retained raw phone evidence before limiting results; use for specific titles, subjects or searches that summaries omitted. Matching is case-insensitive and requires all query words in one observation. Empty query pages chronological evidence. Follow next_cursor using before and before_id to retrieve older matches. Always requires the live approved phone; no offline fallback. "+NOTICE,
+     "inputSchema":{"type":"object","properties":{"query":{"type":"string","default":""},"minutes":{"type":"number","minimum":1,"maximum":10080,"default":1440},"limit":{"type":"integer","minimum":1,"maximum":100,"default":20},"before":{"type":"number","description":"Exclusive upper timestamp, or cursor timestamp when before_id is supplied."},"before_id":{"type":"string","description":"Use together with before from next_cursor; prevents skipping observations sharing a timestamp."}},"additionalProperties":False},
+     "annotations":{"readOnlyHint":True,"destructiveHint":False,"openWorldHint":False}},
     {"name":"phone_history_memories","description":"Read on-phone Apple AI summaries of partial iPhone observations, with evidence IDs. Requires a live approved phone. Prefer for broader history questions; summaries are model-generated, not proof of actions. Verify precise claims with phone_history_evidence. "+NOTICE,
      "inputSchema":{"type":"object","properties":{"minutes":{"type":"integer","minimum":1,"maximum":10080,"default":1440},"limit":{"type":"integer","minimum":1,"maximum":20,"default":10}},"additionalProperties":False},
      "annotations":{"readOnlyHint":True,"destructiveHint":False,"openWorldHint":False}},
@@ -356,7 +380,7 @@ def rpc(message, path, host=None):
             versions = ("2024-11-05", "2025-03-26", "2025-06-18")
             requested = message.get("params", {}).get("protocolVersion")
             result = {"protocolVersion": requested if requested in versions else versions[-1],
-                      "capabilities": {"tools": {}}, "serverInfo": {"name": "phone-history", "version": "0.5.0"}, "instructions": NOTICE}
+                      "capabilities": {"tools": {}}, "serverInfo": {"name": "phone-history", "version": "0.6.0"}, "instructions": NOTICE}
         elif method == "ping":
             result = {}
         elif method == "tools/list":
@@ -365,13 +389,14 @@ def rpc(message, path, host=None):
             params = message.get("params", {})
             arguments = params.get("arguments", {})
             name = params.get("name")
-            if name not in ("phone_history_recent", "phone_history_status", "phone_history_check_now", "phone_history_screenshot", "phone_history_memories", "phone_history_evidence"):
+            if name not in ("phone_history_search", "phone_history_recent", "phone_history_status", "phone_history_check_now", "phone_history_screenshot", "phone_history_memories", "phone_history_evidence"):
                 return {"jsonrpc": "2.0", "id": identifier, "error": {"code": -32602, "message": "Unknown tool"}}
-            allowed = {"minutes", "limit", "require_phone"} if name == "phone_history_recent" else {"minutes","limit"} if name == "phone_history_memories" else {"ids"} if name == "phone_history_evidence" else set()
+            allowed = {"query","minutes","limit","before","before_id"} if name == "phone_history_search" else {"minutes", "limit", "require_phone"} if name == "phone_history_recent" else {"minutes","limit"} if name == "phone_history_memories" else {"ids"} if name == "phone_history_evidence" else set()
             if not isinstance(arguments, dict) or set(arguments) - allowed:
                 raise ValueError("Invalid tool arguments")
             try:
-                if name == "phone_history_memories":
+                if name == "phone_history_search":value=search(path,host=host,**arguments)
+                elif name == "phone_history_memories":
                     if not 1 <= arguments.get("limit",10) <= 20:raise ValueError("Memory limit must be between 1 and 20")
                     value=fetch(path,"memories",minutes=arguments.get("minutes",1440),limit=arguments.get("limit",10),host=host)
                 elif name == "phone_history_evidence":value=evidence(path,arguments.get("ids"),host=host)
@@ -418,6 +443,9 @@ def main():
     memories=sub.add_parser("memories",help="On-phone AI summaries with evidence references")
     memories.add_argument("--minutes",type=int,default=1440);memories.add_argument("--limit",type=int,default=10);memories.add_argument("--host")
     proofs=sub.add_parser("evidence",help="Retained observations referenced by IDs");proofs.add_argument("--ids",nargs="+",required=True);proofs.add_argument("--host")
+    lookup=sub.add_parser("search",help="Search retained raw evidence, with chronological pagination")
+    lookup.add_argument("--query",default="");lookup.add_argument("--minutes",type=int,default=1440);lookup.add_argument("--limit",type=int,default=20)
+    lookup.add_argument("--before",type=float);lookup.add_argument("--before-id");lookup.add_argument("--host")
     sub.add_parser("status").add_argument("--host")
     sub.add_parser("mcp").add_argument("--host")
     receiver=sub.add_parser("receive",help="Run the approved desktop archive receiver; removal requires selecting it on the phone")
@@ -430,6 +458,7 @@ def main():
             if not 1 <= args.limit <= 20:raise ValueError("Memory limit must be between 1 and 20")
             result=fetch(args.state,"memories",minutes=args.minutes,limit=args.limit,host=args.host)
         elif args.command == "evidence":result=evidence(args.state,args.ids,args.host)
+        elif args.command == "search":result=search(args.state,args.query,args.minutes,args.limit,args.before,args.before_id,args.host)
         elif args.command == "summarize":result=fetch(args.state,"summarize",host=args.host)
         elif args.command == "pair":
             result = pair(args.state, args.connection)

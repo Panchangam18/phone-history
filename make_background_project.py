@@ -11,7 +11,7 @@ TEAM = option('team')
 BUNDLE = option('bundle_id','com.example.phonehistory')
 GROUP = option('group','group.'+BUNDLE)
 CONTROL_KIND = option('control_kind',BUNDLE+'.capture-toggle')
-BUILD = option('build','98')
+BUILD = option('build','99')
 VERSION = option('version','1.0')
 ENCRYPTION_EXPORT_CODE = option('encryption_export_code')
 if ENCRYPTION_EXPORT_CODE:

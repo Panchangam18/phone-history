@@ -9,10 +9,13 @@ import sys
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command',choices=('status','memories','evidence','history','check-now','summarize'))
+    parser.add_argument('command',choices=('status','memories','evidence','search','history','check-now','summarize'))
     parser.add_argument('--minutes',type=int,default=60)
     parser.add_argument('--limit',type=int,default=20)
     parser.add_argument('--ids',nargs='+',help='Evidence IDs returned by a memory')
+    parser.add_argument('--query',default='',help='All words must match one observation; empty pages raw evidence')
+    parser.add_argument('--before',type=float,help='Timestamp from next_cursor')
+    parser.add_argument('--before-id',help='Evidence ID from next_cursor')
     parser.add_argument('--host',help="Phone's local Wi-Fi IPv4 address, if it changed")
     parser.add_argument('--state',type=Path,default=Path.home()/'.phone-history/desktop.json')
     args=parser.parse_args()
@@ -27,6 +30,10 @@ def main():
     if args.command=='history':
         command+=['--require-phone','--minutes',str(args.minutes),'--limit',str(args.limit)]
     if args.command=='memories':command+=['--minutes',str(args.minutes),'--limit',str(min(20,args.limit))]
+    if args.command=='search':
+        command+=['--query',args.query,'--minutes',str(args.minutes),'--limit',str(args.limit)]
+        if args.before is not None:command+=['--before',str(args.before)]
+        if args.before_id is not None:command+=['--before-id',args.before_id]
     if args.command=='evidence':
         if not args.ids:parser.error('evidence requires --ids')
         command+=['--ids',*args.ids]

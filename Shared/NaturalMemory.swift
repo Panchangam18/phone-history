@@ -41,9 +41,37 @@ enum NaturalMemory {
         }
         // Allocate context across the chronological samples, without choosing
         // subjects, outcomes or verbs in code. The model interprets the text.
-        let share=min(2048,max(1,7800/max(1,values.count)-140))
+        let budget=max(1,7800-values.count*140)
+        // Short screens return unused context to longer screens. No subject
+        // ranking: allocation depends only on byte length, not app or content.
+        var allocations=Array(repeating:0,count:values.count)
+        var remaining=budget
+        var pending=Array(values.indices)
+        while !pending.isEmpty && remaining>0 {
+            let share=max(1,remaining/pending.count)
+            let complete=pending.filter{min(2048,values[$0].0.utf8.count)<=share}
+            if complete.isEmpty {
+                for index in pending {allocations[index]=share}
+                break
+            }
+            for index in complete {
+                allocations[index]=min(2048,values[index].0.utf8.count)
+                remaining-=allocations[index]
+            }
+            pending.removeAll{complete.contains($0)}
+        }
         return values.enumerated().map{MemoryExcerpt(number:$0.offset+1,
-            text:MemoryText.bounded($0.element.0,bytes:share),entry:$0.element.1)}
+            text:boundedScreen($0.element.0,bytes:allocations[$0.offset]),entry:$0.element.1)}
+    }
+    private static func boundedScreen(_ text:String,bytes:Int)->String {
+        guard text.utf8.count>bytes else{return text}
+        // Preserve both ends when a screen still exceeds its context share.
+        // Explicit omission prevents the model reading the fragments as joined.
+        let separator="\n[... omitted ...]\n"
+        let available=max(0,bytes-separator.utf8.count)
+        let head=MemoryText.bounded(text,bytes:available/2)
+        let reversed=MemoryText.bounded(String(text.reversed()),bytes:available-available/2)
+        return head+separator+String(reversed.reversed())
     }
     static func excerptPrompt(_ excerpts:[MemoryExcerpt])->String {
         let time=ISO8601DateFormatter()

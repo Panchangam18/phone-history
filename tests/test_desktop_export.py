@@ -477,9 +477,44 @@ class DesktopExportTests(unittest.TestCase):
         responses = [json.loads(line) for line in run.stdout.splitlines()]
         self.assertEqual(len(responses), 3)
         self.assertEqual(responses[0]["result"]["protocolVersion"], "2025-06-18")
-        self.assertEqual(len(responses[1]["result"]["tools"]), 6)
+        self.assertEqual(len(responses[1]["result"]["tools"]), 7)
         self.assertTrue(all(tool["annotations"]["readOnlyHint"] for tool in responses[1]["result"]["tools"]))
         self.assertEqual(responses[2]["error"]["code"], -32602)
+
+    def test_search_filters_before_limit_and_paginates_equal_timestamps(self):
+        seconds=int(self.now%86400)
+        self.append_rows([{"p":2,"s":seconds-1000,"id":"e-target","n":["Café telescope launch"],"reset_p":True}]+[
+            {"p":2,"s":seconds-500+i,"id":"e-noise-%d"%i,"n":["Unrelated observation %d"%i],"reset_p":True} for i in range(150)])
+        found=self.opened(operation="search",query="CAFE telescope",since=self.now-2000,limit=1)
+        self.assertEqual(found["entries"][0]["id"],"e-target")
+        self.assertNotIn("developer_private_key",json.dumps(found))
+        # Advance the fixture clock to respect the search rate limit.
+        self.now+=11
+        self.append_rows([{"p":3,"s":seconds,"id":identifier,"n":["Tied subject"],"reset_p":True} for identifier in ["e-c","e-a","e-b"]])
+        first=self.opened(operation="search",query="tied",since=self.now-2000,limit=2)
+        self.assertEqual([row["id"] for row in first["entries"]],["e-c","e-b"])
+        self.now+=11
+        second=self.opened(operation="search",query="tied",since=self.now-2000,limit=2,**first["next_cursor"])
+        self.assertEqual([row["id"] for row in second["entries"]],["e-a"])
+        self.assertNotIn("next_cursor",second)
+
+    def test_search_rejects_invalid_filters_and_revoked_identity(self):
+        for fields in [{"query":"x"*161},{"query":5},{"query":"x","before_id":"e-x"},
+                       {"query":"x","before":self.now+1},{"query":"x","before":self.now-100}]:
+            _,body=self.request_body(operation="search",**fields)
+            self.assertTrue(self.ask(body)["denied"])
+            self.now+=11
+        self.worker.stdin.write('{"revoke":true}\n');self.worker.stdin.flush();self.worker.stdout.readline()
+        _,body=self.request_body(operation="search",query="fixture")
+        self.assertTrue(self.ask(body)["denied"])
+
+    def test_search_client_requires_live_phone_and_valid_arguments(self):
+        for fields in [{"query":False},{"limit":True},{"limit":101},{"minutes":0},{"before_id":"e-x"}]:
+            with self.assertRaises(ValueError):agent.search(self.state,**fields)
+        with mock.patch.object(agent,"exchange",side_effect=ConnectionError("Live connection required")):
+            with self.assertRaises(ConnectionError):agent.search(self.state,query="topic")
+            response=agent.rpc({"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"phone_history_search","arguments":{"query":"topic"}}},self.state)
+            self.assertTrue(response["result"]["isError"])
 
     def test_real_network_listener_and_client(self):
         run = subprocess.run(["ipconfig", "getifaddr", "en0"], text=True, capture_output=True)
@@ -509,6 +544,8 @@ class DesktopExportTests(unittest.TestCase):
             # patched fetch. Only synthetic fixture keys/text are involved.
             live=subprocess.run([os.sys.executable,str(runner),"history","--state",str(self.state),"--minutes","60","--limit","5"],text=True,capture_output=True,check=True)
             self.assertTrue(json.loads(live.stdout)["phone_available"])
+            lookup=subprocess.run([os.sys.executable,str(runner),"search","--state",str(self.state),"--query","nonexistent"],text=True,capture_output=True,check=True)
+            self.assertEqual(json.loads(lookup.stdout)["returned"],0)
             archive=agent.ROOT/"archives"/connection["pair_id"]
             self.assertFalse(archive.exists())
             archive.mkdir(parents=True,mode=0o700)

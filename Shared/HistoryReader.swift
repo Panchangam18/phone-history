@@ -21,12 +21,12 @@ enum HistoryReader {
 
     // Resolve only the requested references. Reconstruct delta state in order,
     // but do not retain or hash thousands of unrelated observations.
-    static func readIDs(_ files:[URL],ids:Set<String>) throws -> HistoryReadResult {
+    static func readIDs(_ files:[URL],ids:Set<String>,since:Date?=nil) throws -> HistoryReadResult {
         var remaining=ids;var entries:[HistoryEntry]=[];var skipped=0
         for file in files.sorted(by:{$0.lastPathComponent > $1.lastPathComponent}) {
             try Task.checkCancellation()
             guard !remaining.isEmpty else {break}
-            let result=try read([file],limit:remaining.count,includeNoise:true,ids:remaining)
+            let result=try read([file],limit:remaining.count,since:since,includeNoise:true,ids:remaining)
             entries+=result.entries;skipped+=result.skippedRows
             remaining.subtract(result.entries.map{$0.id})
         }
@@ -46,6 +46,9 @@ enum HistoryReader {
         }
         return HistoryReadResult(entries:Array((kind == "memories" ? distinctWindows(entries):entries).prefix(limit)),skippedRows:skipped)
     }
+    private static func newer(_ a:HistoryEntry,_ b:HistoryEntry)->Bool {
+        a.date == b.date ? a.id>b.id:a.date>b.date
+    }
     private static func distinctWindows(_ entries:[HistoryEntry])->[HistoryEntry] {
         var seen=Set<String>()
         return entries.sorted{($0.memory?.generatedAt ?? 0)>($1.memory?.generatedAt ?? 0)}.filter {
@@ -53,9 +56,19 @@ enum HistoryReader {
             return seen.insert(m.scope+"|"+String(Int(m.start))).inserted
         }.sorted{$0.date>$1.date}
     }
-    static func read(_ files: [URL], limit: Int = 100, since: Date? = nil,kind:String="all",includeNoise:Bool=false,ids:Set<String>?=nil) throws -> HistoryReadResult {
+    static func read(_ files: [URL], limit: Int = 100, since: Date? = nil,kind:String="all",includeNoise:Bool=false,ids:Set<String>?=nil,ordered:Bool=false,before:Date?=nil,beforeID:String?=nil,query:String="") throws -> HistoryReadResult {
         var entries: [HistoryEntry] = []
         var skipped = 0
+        let terms=query.folding(options:[.caseInsensitive,.diacriticInsensitive],locale:Locale(identifier:"en_US_POSIX")).split(whereSeparator:{$0.isWhitespace}).map(String.init)
+        func matches(_ entry:HistoryEntry)->Bool {
+            if let before {
+                if entry.date>before {return false}
+                if entry.date == before && (beforeID == nil || entry.id>=beforeID!) {return false}
+            }
+            guard !terms.isEmpty else{return true}
+            let content=entry.text.joined(separator:" ").folding(options:[.caseInsensitive,.diacriticInsensitive],locale:Locale(identifier:"en_US_POSIX"))
+            return terms.allSatisfy{content.contains($0)}
+        }
         for file in files.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
             try Task.checkCancellation()
             var states: [Int:State] = [:]
@@ -78,7 +91,8 @@ enum HistoryReader {
                         if (cursor["format_revision"] ?? 0)>Double(memory.format ?? 0),abstained>=memory.end {continue}
                     }
                     if kind != "evidence",since == nil || memory.end>=since!.timeIntervalSince1970 {
-                        entries.append(HistoryEntry(date:Date(timeIntervalSince1970:memory.end),label:memory.apps.joined(separator:", "),text:[memory.summary]+memory.facts,id:memory.id,source:"AI summary",memory:memory))
+                        let entry=HistoryEntry(date:Date(timeIntervalSince1970:memory.end),label:memory.apps.joined(separator:", "),text:[memory.summary]+memory.facts,id:memory.id,source:"AI summary",memory:memory)
+                        if matches(entry) {entries.append(entry)}
                     }
                     continue
                 }
@@ -112,12 +126,17 @@ enum HistoryReader {
                 if let stored=row["id"] as? String {id=stored}
                 else {id="legacy-"+SHA256.hash(data:Data("\(pid)|\(epoch+Double(seconds))|\(state.text.joined(separator:"|"))".utf8)).map{String(format:"%02x",$0)}.joined()}
                 if let ids,!ids.contains(id) {continue}
-                entries.append(HistoryEntry(date:Date(timeIntervalSince1970:epoch+Double(seconds)),
-                    label:state.label.isEmpty ? "App context" : state.label, text:state.text,id:id,source:row["source"] as? String ?? "AX",appIdentityVerified:row["host_app_identity_verified"] as? Bool ?? false))
-                if entries.count > max(1,limit)*2 { entries.removeFirst(entries.count-max(1,limit)) }
+                let entry=HistoryEntry(date:Date(timeIntervalSince1970:epoch+Double(seconds)),
+                    label:state.label.isEmpty ? "App context" : state.label, text:state.text,id:id,source:row["source"] as? String ?? "AX",appIdentityVerified:row["host_app_identity_verified"] as? Bool ?? false)
+                if matches(entry) {entries.append(entry)}
+                if entries.count > max(1,limit)*2 {
+                    if ordered {entries=Array(entries.sorted(by:newer).prefix(max(1,limit)))}
+                    else {entries.removeFirst(entries.count-max(1,limit))}
+                }
             }
         }
-        let newest=Array(entries.suffix(max(1,limit)).reversed())
-        return HistoryReadResult(entries:kind == "memories" ? distinctWindows(newest):newest,skippedRows:skipped)
+        let sorted=ordered ? entries.sorted(by:newer):entries.reversed().sorted{$0.date>$1.date}
+        let newest=Array((kind == "memories" ? distinctWindows(sorted):sorted).prefix(max(1,limit)))
+        return HistoryReadResult(entries:newest,skippedRows:skipped)
     }
 }

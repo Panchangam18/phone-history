@@ -2,7 +2,7 @@
 
 This is a research prototype, not an independently audited security product. Do not use “hyper secure” as a description of its current assurance level.
 
-Desktop requests use HTTP framing with application-layer authenticated encryption: pinned X25519 identities, HKDF-derived keys and ChaChaPoly through Apple CryptoKit / Python cryptography. Fingerprints are compared on the phone before approval. Request IDs and timestamps constrain replay; reads and expensive operations are rate-limited. Developer trust records are never exported to desktops. Screenshots require an additional per-desktop permission.
+Desktop requests use HTTP framing with application-layer authenticated encryption: pinned X25519 identities, HKDF-derived keys and AES-GCM through Apple CryptoKit / Python cryptography. Fingerprints are compared on the phone before approval. Request IDs and timestamps constrain replay; reads and expensive operations are rate-limited. Developer trust records are never exported to desktops. Screenshots require an additional per-desktop permission.
 
 The listener is intended only for a private local network. The connector rejects public, loopback and hostname destinations. Do not forward its port or treat network isolation as authentication. Protect the private desktop state file; whoever possesses it has the same authorization. Removing phone approval blocks future requests, not already exported copies.
 

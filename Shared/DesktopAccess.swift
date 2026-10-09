@@ -119,7 +119,7 @@ final class DesktopExportProtocol {
         guard let request = try JSONSerialization.jsonObject(with:requestData) as? [String:Any],
               let requestID = request["request_id"] as? String, UUID(uuidString:requestID) != nil,
               let issued = request["issued_at"] as? Double,
-              let operation = request["operation"] as? String, (["history","status","ax_check","screenshot","memories","evidence","summarize"]+HistoryOffload.operations).contains(operation)
+              let operation = request["operation"] as? String, (["history","search","status","ax_check","screenshot","memories","evidence","summarize"]+HistoryOffload.operations).contains(operation)
         else { throw DesktopAccess.AccessError.invalidRequest }
         guard operation != "screenshot" || pair.allowsScreenshots else { throw DesktopAccess.AccessError.unauthorized }
         guard issued.isFinite,now.isFinite,abs(now-issued) <= 60 else { throw DesktopAccess.AccessError.expired }
@@ -136,7 +136,7 @@ final class DesktopExportProtocol {
         // Status followed by history is a normal agent flow. Throttle costly
         // history reads separately from the small freshness/status response.
         let readKey=(["ax_check","screenshot","summarize"].contains(operation)) ? "global:"+operation:id+":"+operation
-        let interval: Double=operation == "summarize" ? 60 : (["history","memories","evidence"].contains(operation) ? 10 : (operation == "status" ? 2 : (["ax_check","screenshot"].contains(operation) ? 30 : 0)))
+        let interval: Double=operation == "summarize" ? 60 : (["history","search","memories","evidence"].contains(operation) ? 10 : (operation == "status" ? 2 : (["ax_check","screenshot"].contains(operation) ? 30 : 0)))
         guard now-(lastRead[readKey] ?? 0) >= interval else { throw DesktopAccess.AccessError.invalidRequest }
         lastRead[readKey] = now
         lastRead=lastRead.filter { $0.value>now-120 }
@@ -176,10 +176,23 @@ final class DesktopExportProtocol {
             for key in ["state","updated_at","model_available","availability","scope","source_count","last_generated_at","evidence_preserved","next_window_end","summary_style","generation_failure"] {if let v=raw[key] {safe[key]=v}}
             response["memory_generation"]=safe
         }
-        if ["history","memories","evidence"].contains(operation) {
+        if ["history","search","memories","evidence"].contains(operation) {
             let since = (request["since"] as? Double) ?? now-86400
             guard since.isFinite, since >= now-7*86400, since <= now else { throw DesktopAccess.AccessError.invalidRequest }
             let limit = min(operation == "memories" ? 20:100,max(1,(request["limit"] as? Int) ?? 30))
+            var before:Date?=nil;var beforeID:String?=nil;var query=""
+            if operation == "search" {
+                guard let value=request["query"] as? String,value.utf8.count<=160 else {throw DesktopAccess.AccessError.invalidRequest}
+                query=value
+                if let raw=request["before"] {
+                    guard let upper=raw as? Double,upper.isFinite,upper>=since,upper<=now else {throw DesktopAccess.AccessError.invalidRequest}
+                    before=Date(timeIntervalSince1970:upper)
+                }
+                if let raw=request["before_id"] {
+                    guard before != nil,let id=raw as? String,!id.isEmpty,id.utf8.count<=80 else {throw DesktopAccess.AccessError.invalidRequest}
+                    beforeID=id
+                }
+            }
             let records = folder.appendingPathComponent("Records",isDirectory:true)
             let names = (try? FileManager.default.contentsOfDirectory(at:records,includingPropertiesForKeys:nil)) ?? []
             let files = names.filter { url in
@@ -192,10 +205,20 @@ final class DesktopExportProtocol {
             if operation == "evidence" {
                 guard let ids=request["ids"] as? [String],!ids.isEmpty,ids.count<=40,ids.allSatisfy({!$0.isEmpty && $0.utf8.count<=80}) else {throw DesktopAccess.AccessError.invalidRequest}
                 let wanted=Set(ids)
-                let all=try HistoryReader.readNewest(files,limit:20000,since:Date(timeIntervalSince1970:since),kind:"all",includeNoise:true)
-                result=HistoryReadResult(entries:all.entries.filter{wanted.contains($0.id)},skippedRows:all.skippedRows)
+                result=try HistoryReader.readIDs(files,ids:wanted,since:Date(timeIntervalSince1970:since))
                 response["missing_ids"]=ids.filter{id in !result.entries.contains{$0.id==id}}
+            } else if operation == "search" {
+                // Rotated streams may overlap in time. Search all retained files
+                // with a bounded result buffer, applying filters before the cap.
+                result=try HistoryReader.read(files,limit:limit,since:Date(timeIntervalSince1970:since),kind:"evidence",ordered:true,before:before,beforeID:beforeID,query:query)
             } else {result=try HistoryReader.readNewest(files,limit:operation == "memories" ? min(20,limit):limit,since:Date(timeIntervalSince1970:since),kind:operation == "memories" ? "memories":"evidence")}
+            if operation == "search" {
+                response["query"]=query
+                response["coverage"]="Matching retained raw observations, not inferred actions. All query words must occur in an observation. A missing match does not establish the activity never happened."
+                if result.entries.count == limit,let last=result.entries.last {
+                    response["next_cursor"]=["before":last.date.timeIntervalSince1970,"before_id":last.id]
+                }
+            }
             response["entries"] = result.entries.map {
                 if let memory=$0.memory,let data=try? JSONEncoder().encode(memory),let row=(try? JSONSerialization.jsonObject(with:data)) as? [String:Any] {return row}
                 return ["timestamp":$0.date.timeIntervalSince1970,"app_label":$0.label,"text":$0.text,"id":$0.id,"source":$0.source,"partial":true,"host_app_identity_verified":$0.appIdentityVerified] as [String:Any]
