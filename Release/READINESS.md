@@ -1,5 +1,7 @@
 # App Store preparation
 
+Status checked 2026-10-09: Apple issued an automated VPN questionnaire under 2.1.0 Performance: App Completeness and marked build 98 rejected. The requested answers were sent through App Store Connect at 5:37 p.m. Pacific; the same explanation plus reviewer setup was saved in App Review Information and verified after reload. The exact reply is preserved in [VPN-REVIEW-RESPONSE.txt](VPN-REVIEW-RESPONSE.txt). Build 98 was resubmitted at 5:38 p.m. Pacific, and the submission detail page confirms Waiting for Review. Submission ID remains `ae521335-f271-4a07-b571-b2d923c4eb73`. Build 99 remains the separate private TestFlight build. This resolves our response/submission work, not Apple approval or the outstanding eligibility questions.
+
 Build 99 uploaded successfully on 2026-10-08 at 11:44 p.m. Pacific and Apple began processing it. Apple processing completed, and App Store Connect confirms build 99 is Testing in the existing private Release verification group with one internal tester. Focused test notes are saved. Installation of build 99 on the phone has not yet been verified. It does not replace the submitted build 98. Its Release archive passes signature verification and all 49 tests pass.
 
 Build 99 adds raw-evidence search with filtering before the result cap, timestamp/ID pagination, and direct source-ID lookup without the former 20,000-record display cutoff. The desktop skill uses raw search for specific recall. Protocol tests cover older matches, delta reconstruction, overlapping files, equal-timestamp pagination, revocation and live-only access. A separate encrypted MCP regression retrieved a subject from retained phone observations with 150 newer unrelated records ahead of it; this used a disposable local server and copied observations, not an updated live phone. Personal inputs and outputs remain in the ignored build folder.
@@ -70,7 +72,7 @@ The reviewer needs working first-time setup on their own device. An imported tru
 
 ## Remaining submission fields and checks
 
-- Build 98 is submitted and Waiting for Review. Short TestFlight background capture was verified on the existing paired phone; first-time recipient setup and longer reliability checks remain unverified. Updated synthetic screenshots and transparent reviewer setup notes are saved.
+- Build 98 was resubmitted on 2026-10-09 with the requested VPN clarification and is Waiting for Review. Short TestFlight background capture was verified on the existing paired phone; first-time recipient setup and longer reliability checks remain unverified. Updated synthetic screenshots and transparent reviewer setup notes are saved.
 - Current iOS compatibility, recipient setup, reboot/reconnect behavior and longer energy checks.
 - The account holder's affirmative content-rights declaration is saved; supporting authorization has not been independently established. Any accessibility claims must reflect actual verification.
 - The account holder selected non-trader and DSA compliance is active. Other regional requirements remain applicable; selecting worldwide storefronts does not itself satisfy them.
